@@ -1,4 +1,6 @@
-### Delegation
+# Responsibilities
+
+### September - October
 
 - [Telegram Bridge](https://github.com/ubiquity-os/telegram-bridge) - @keyrxng
 - [SDK](https://github.com/ubiquity-os/sdk) - @whilefoo
