@@ -1,7 +1,3 @@
-# Responsibilities
+# UbiquityOS
 
-### September - October
-
-- [Telegram Bridge](https://github.com/ubiquity-os/telegram-bridge) - @keyrxng
-- [SDK](https://github.com/ubiquity-os/sdk) - @whilefoo
-- [Conversation Rewards](https://github.com/ubiquity-os/conversation-rewards) - @gentlementlegen
+The operating system for the organizations of tomorrow. We host plugins which extend the capabilities of the UbiquityOS system here.
