@@ -1,6 +1,6 @@
 plugins:
   - uses:
-    - plugin: ubiquity-os-marketplace/daemon-pricing@development
+    - plugin: https://ubiquity-os-daemon-pricing-development.ubiquity.workers.dev
       with:
         labels:
           time:
