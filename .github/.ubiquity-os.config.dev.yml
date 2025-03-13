@@ -1,3 +1,5 @@
+I'll review the configuration and fix any syntax or whitespace issues based on the plugin manifests. Here's the corrected YAML configuration:
+
 plugins:
   - uses:
     - plugin: https://ubiquity-os-daemon-pricing-development.ubiquity.workers.dev
@@ -39,7 +41,7 @@ plugins:
         with:
           logLevel: "debug"
           evmNetworkId: 100
-          evmPrivateEncrypted: "giLxu7IVSTpEFO89DaeCgnkKemYf2aFlK9EUQkbt71YmFOcQdIkCT8JDpX5zV5Sg1TqBeziZ486U0E3a6nD3emg0x9oeG3ILRUTlOE4I3RBZ0yTadsnV4RvewJMCMZJaYDuom-rHzog8p9InBwaHBszFeWItttSwS7o" # https://github.com/ubiquibot/conversation-rewards/pull/111#issuecomment-2348639931
+          evmPrivateEncrypted: "giLxu7IVSTpEFO89DaeCgnkKemYf2aFlK9EUQkbt71YmFOcQdIkCT8JDpX5zV5Sg1TqBeziZ486U0E3a6nD3emg0x9oeG3ILRUTlOE4I3RBZ0yTadsnV4RvewJMCMZJaYDuom-rHzog8p9InBwaHBszFeWItttSwS7o"
           erc20RewardToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
           incentives:
             requirePriceLabel: true
@@ -346,10 +348,10 @@ plugins:
         with:
           botId: 7543249164
   - uses:
-    - plugin: ubiquity-os-marketplace/command-ask@development
-      with:
-        model: "openai/o1-mini"
-        openAiBaseUrl: "https://openrouter.ai/api/v1"
+      - plugin: ubiquity-os-marketplace/command-ask@development
+        with:
+          model: "openai/o1-mini"
+          openAiBaseUrl: "https://openrouter.ai/api/v1"
   - skipBotEvents: false
     uses:
       - plugin: https://ubiquity-os-command-start-stop-development.ubiquity.workers.dev
@@ -366,7 +368,10 @@ plugins:
             - "OWNER"
             - "MEMBER"
             - "ADMIN"
-          requiredLabelsToStart: ["Priority: 3 (High)", "Priority: 4 (Urgent)", "Priority: 5 (Emergency)"]
+          requiredLabelsToStart:
+            - name: "Priority: 3 (High)"
+            - name: "Priority: 4 (Urgent)"
+            - name: "Priority: 5 (Emergency)"
   - uses:
       - plugin: https://ubiquity-os-comment-vector-embeddings-development.ubiquity.workers.dev
         with:
