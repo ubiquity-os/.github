@@ -39,7 +39,7 @@ plugins:
         with:
           logLevel: "debug"
           evmNetworkId: 100
-          evmPrivateEncrypted: "SIQcO3pEt2wUoEuq-3T13GyWzFLm4OsgNN_x7dtJ3APwWedPgLozuqjMhVX55i7nVM6cgzjyCNidxvmtdmkr87DXsKftLiF_jdK-yMmEmcYiDqFia-z-eYVOQFPnLCSRAEyiAllFsljiDteQR7y_0uGfF3aZTOrxdow" # https://github.com/ubiquibot/conversation-rewards/pull/111#issuecomment-2348639931
+          evmPrivateEncrypted: "-Za1hDkYq0NxBrDloG1jeBNxNqWMsYtYeZ5JJdGKQApqY6tg8RfiDeeY1djQsnAlT803MtQ46NqeSonTs4_gVchvKHLmwPqDDQ3oBDbt9rOYoyvu79YjcxzmQNP4qoI1W8knRb1cYUYZLOM37R0lCSYMH4F4IRC0JMg" # https://github.com/ubiquibot/conversation-rewards/pull/111#issuecomment-2348639931
           erc20RewardToken: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
           incentives:
             requirePriceLabel: true
