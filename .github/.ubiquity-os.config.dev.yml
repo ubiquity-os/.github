@@ -332,6 +332,7 @@ plugins:
               wordCountExponent: 0.85
             permitGeneration:
               enabled: true
+            reviewIncentivizer: {}
             githubComment:
               post: true
               debug: false
