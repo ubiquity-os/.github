@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DashboardValueMetrics",
+  "type": "object",
+  "required": [
+    "windowDays",
+    "issuesPlanned",
+    "assignmentTimeSavedHours",
+    "planningTimeSavedHours",
+    "salaryEquivalentSavingsUsd",
+    "generatedAt"
+  ],
+  "properties": {
+    "windowDays": { "type": "integer", "minimum": 1 },
+    "issuesPlanned": { "type": "integer", "minimum": 0 },
+    "assignmentTimeSavedHours": { "type": "number", "minimum": 0 },
+    "planningTimeSavedHours": { "type": "number", "minimum": 0 },
+    "salaryEquivalentSavingsUsd": { "type": "number", "minimum": 0 },
+    "assumptions": {
+      "type": "object",
+      "properties": {
+        "managerHourlyRateUsd": { "type": "number", "minimum": 0 },
+        "manualAssignmentMinutesPerIssue": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "generatedAt": { "type": "string", "format": "date-time" }
+  }
+}
