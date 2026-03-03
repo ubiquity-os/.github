@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SprintPlanItem",
+  "type": "object",
+  "required": [
+    "issueId",
+    "repository",
+    "title",
+    "priority",
+    "effortHours",
+    "recommendedAssignee",
+    "confidence",
+    "reasons"
+  ],
+  "properties": {
+    "issueId": { "type": "string" },
+    "repository": { "type": "string" },
+    "title": { "type": "string" },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"]
+    },
+    "effortHours": { "type": "number", "minimum": 0 },
+    "recommendedAssignee": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  }
+}
