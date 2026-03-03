@@ -5,3 +5,4 @@ The operating system for the organizations of tomorrow. We host plugins which ex
 ## Prototype Artifacts
 
 - Sprint Management Dashboard MVP (Issue #14): [`profile/sprint-dashboard-mvp`](./sprint-dashboard-mvp)
+  - Quick verify: `cd profile/sprint-dashboard-mvp && ./verify.sh`

@@ -11,7 +11,20 @@ This folder delivers a **mergeable MVP artifact** for `ubiquity-os/.github#14`:
 
 Issue #14 is currently tracked in `ubiquity-os/.github` and this repository has no app scaffold yet. To keep scope tight and reviewable, this MVP is shipped as a standalone static artifact under profile assets, enabling maintainers to validate product direction before committing to a full app repo.
 
-## Run locally
+## One-command reproducibility (recommended)
+
+```bash
+cd profile/sprint-dashboard-mvp && ./verify.sh
+```
+
+Expected output:
+
+- `✅ Sprint Dashboard MVP is reproducible`
+- URL printed (default `http://127.0.0.1:18080`)
+
+`verify.sh` starts a temporary local server, fetches the homepage, checks key content, and exits non-zero if validation fails.
+
+## Run locally (manual)
 
 ```bash
 cd profile/sprint-dashboard-mvp
