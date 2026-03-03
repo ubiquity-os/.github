@@ -5,3 +5,4 @@ The operating system for the organizations of tomorrow. We host plugins which ex
 ## Planning Docs
 
 - [Sprint Management Dashboard MVP (Issue #14)](./sprint-management-dashboard-mvp.md)
+- [PR-1 Implementation Scaffold](./pr1-scaffold/README.md)

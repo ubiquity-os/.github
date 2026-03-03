@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: UbiquityOS Sprint Dashboard API (PR-1 Scaffold)
+  version: 0.1.0
+servers:
+  - url: https://api.example.com
+paths:
+  /auth/github/start:
+    get:
+      summary: Start GitHub OAuth login
+      responses:
+        '302':
+          description: Redirect to GitHub authorization page
+
+  /auth/github/callback:
+    get:
+      summary: OAuth callback endpoint
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Auth successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+
+  /orgs:
+    get:
+      summary: List organizations available to current user
+      responses:
+        '200':
+          description: Organization list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+
+  /orgs/{orgId}/connect:
+    post:
+      summary: Connect organization and select repositories for ingestion
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [repositories]
+              properties:
+                repositories:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '202':
+          description: Connection accepted and ingestion enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobAck'
+
+  /ingestion/jobs/{jobId}:
+    get:
+      summary: Poll ingestion job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionJobStatus'
+
+components:
+  schemas:
+    AuthSession:
+      type: object
+      required: [userId, accessToken]
+      properties:
+        userId:
+          type: string
+        accessToken:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    Organization:
+      type: object
+      required: [id, login, name]
+      properties:
+        id:
+          type: string
+        login:
+          type: string
+        name:
+          type: string
+
+    JobAck:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued]
+
+    IngestionJobStatus:
+      type: object
+      required: [jobId, status, progress]
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        message:
+          type: string
