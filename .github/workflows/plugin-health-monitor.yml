@@ -13,6 +13,10 @@ permissions:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: plugin-health-monitor
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,6 +31,7 @@ jobs:
           # or set a comma-separated bot/app actor list.
           DISPATCH_ACTORS: ""
         with:
+          github-token: ${{ secrets.MARKETPLACE_MONITOR_TOKEN }}
           script: |
             const { runPluginHealthMonitor } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/plugin-health-monitor.mjs`);
             const result = await runPluginHealthMonitor({ github, context, core });

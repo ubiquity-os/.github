@@ -96,7 +96,11 @@ async function findOpenMonitorIssue(github, owner, repo, marker) {
 
 export async function runPluginHealthMonitor({ github, context, core }) {
   const org = process.env.TARGET_ORG || "ubiquity-os-marketplace";
-  const threshold = Number.parseInt(process.env.FAILURE_THRESHOLD || "10", 10);
+  const parsedThreshold = Number.parseInt(process.env.FAILURE_THRESHOLD || "10", 10);
+  const threshold = Number.isInteger(parsedThreshold) && parsedThreshold > 0 ? parsedThreshold : 10;
+  if (!Number.isInteger(parsedThreshold) || parsedThreshold <= 0) {
+    core.warning(`Invalid FAILURE_THRESHOLD "${process.env.FAILURE_THRESHOLD}". Falling back to 10.`);
+  }
   const dryRun = (process.env.DRY_RUN || "false").toLowerCase() === "true";
   const maintainers = (process.env.ISSUE_MENTIONS || "@0x4007,@gentlementlegen")
     .split(",")
@@ -111,7 +115,7 @@ export async function runPluginHealthMonitor({ github, context, core }) {
 
   const repos = await github.paginate(github.rest.repos.listForOrg, {
     org,
-    type: "public",
+    type: "all",
     per_page: 100,
   });
 
@@ -122,62 +126,67 @@ export async function runPluginHealthMonitor({ github, context, core }) {
     const repoName = repo.name;
     const fullName = repo.full_name;
 
-    const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
-      owner,
-      repo: repoName,
-      event: "workflow_dispatch",
-      status: "completed",
-      per_page: 50,
-    });
-
-    const filteredRuns = filterRunsByActors(runsResponse.data.workflow_runs || [], allowedActors);
-    const failures = countConsecutiveFailures(filteredRuns);
-
-    if (failures < threshold) {
-      continue;
-    }
-
-    alerts += 1;
-    const runsToInclude = filteredRuns.slice(0, Math.max(failures, threshold));
-    const marker = toMarker(fullName);
-    const title = buildIssueTitle(fullName, failures);
-    const body = buildIssueBody({
-      repoFullName: fullName,
-      failures,
-      threshold,
-      maintainers,
-      runs: runsToInclude,
-    });
-
-    core.warning(`${fullName} exceeded failure threshold (${failures})`);
-
-    if (dryRun) {
-      core.info(`[dry-run] would create/update issue in ${fullName}`);
-      continue;
-    }
-
-    const existingIssue = await findOpenMonitorIssue(github, owner, repoName, marker);
-
-    if (existingIssue) {
-      await github.rest.issues.update({
+    try {
+      const perPage = Math.min(100, Math.max(50, threshold * 2));
+      const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
         owner,
         repo: repoName,
-        issue_number: existingIssue.number,
+        event: "workflow_dispatch",
+        status: "completed",
+        per_page: perPage,
+      });
+
+      const filteredRuns = filterRunsByActors(runsResponse.data.workflow_runs || [], allowedActors);
+      const failures = countConsecutiveFailures(filteredRuns);
+
+      if (failures < threshold) {
+        continue;
+      }
+
+      alerts += 1;
+      const runsToInclude = filteredRuns.slice(0, Math.max(failures, threshold));
+      const marker = toMarker(fullName);
+      const title = buildIssueTitle(fullName, failures);
+      const body = buildIssueBody({
+        repoFullName: fullName,
+        failures,
+        threshold,
+        maintainers,
+        runs: runsToInclude,
+      });
+
+      core.warning(`${fullName} exceeded failure threshold (${failures})`);
+
+      if (dryRun) {
+        core.info(`[dry-run] would create/update issue in ${fullName}`);
+        continue;
+      }
+
+      const existingIssue = await findOpenMonitorIssue(github, owner, repoName, marker);
+
+      if (existingIssue) {
+        await github.rest.issues.update({
+          owner,
+          repo: repoName,
+          issue_number: existingIssue.number,
+          title,
+          body,
+        });
+        core.info(`Updated monitor issue in ${fullName}: #${existingIssue.number}`);
+        continue;
+      }
+
+      const created = await github.rest.issues.create({
+        owner,
+        repo: repoName,
         title,
         body,
       });
-      core.info(`Updated monitor issue in ${fullName}: #${existingIssue.number}`);
-      continue;
+
+      core.info(`Created monitor issue in ${fullName}: #${created.data.number}`);
+    } catch (error) {
+      core.warning(`Skipping ${fullName} due to API error: ${error.message}`);
     }
-
-    const created = await github.rest.issues.create({
-      owner,
-      repo: repoName,
-      title,
-      body,
-    });
-
-    core.info(`Created monitor issue in ${fullName}: #${created.data.number}`);
   }
 
   core.info(`Plugin health monitor finished. Alerts raised: ${alerts}`);
