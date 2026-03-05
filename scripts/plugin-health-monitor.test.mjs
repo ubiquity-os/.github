@@ -165,6 +165,36 @@ test("runPluginHealthMonitor updates existing marker issue", async () => {
   assert.equal(updated[0].issue_number, 12);
 });
 
+test("runPluginHealthMonitor dry-run mode does not write issues", async () => {
+  process.env.FAILURE_THRESHOLD = "2";
+  process.env.DRY_RUN = "true";
+
+  const markerIssue = {
+    number: 19,
+    body: "<!-- plugin-health-monitor:ubiquity-os-marketplace/repo-a -->",
+  };
+
+  const { github, created, updated } = createGithubMock({
+    repos: [{ owner: { login: "ubiquity-os-marketplace" }, name: "repo-a", full_name: "ubiquity-os-marketplace/repo-a" }],
+    runsByRepo: {
+      "ubiquity-os-marketplace/repo-a": [
+        { conclusion: "failure", run_number: 4, html_url: "https://x/4", created_at: "2026-03-05T00:00:00Z", actor: { login: "bot" }, name: "CI" },
+        { conclusion: "failure", run_number: 3, html_url: "https://x/3", created_at: "2026-03-04T00:00:00Z", actor: { login: "bot" }, name: "CI" },
+      ],
+    },
+    issuesByRepo: {
+      "ubiquity-os-marketplace/repo-a": [markerIssue],
+    },
+  });
+
+  const core = { info: () => {}, warning: () => {} };
+  const result = await runPluginHealthMonitor({ github, context: { runId: 22 }, core });
+
+  assert.equal(result.alerts, 1);
+  assert.equal(created.length, 0);
+  assert.equal(updated.length, 0);
+});
+
 test("runPluginHealthMonitor isolates per-repo API errors", async () => {
   process.env.FAILURE_THRESHOLD = "1";
   process.env.DRY_RUN = "true";
