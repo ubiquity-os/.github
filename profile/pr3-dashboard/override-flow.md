@@ -9,7 +9,7 @@ Enable managers to correct AI recommendations in seconds and regenerate a new sp
 1. Change priority (`low/normal/high/urgent`)
 2. Change assignee
 3. Pin item to specific date
-4. Mark recommendation as "ignore"
+4. Mark recommendation as "ignored"
 
 ## API Contract (suggested)
 
