@@ -44,6 +44,11 @@ export function createServer() {
     }
 
     if (req.method === "GET" && pathname === "/auth/github/callback") {
+      const code = url.searchParams.get("code");
+      const stateParam = url.searchParams.get("state");
+      if (!code || !stateParam) {
+        return send(res, 400, { error: "Missing OAuth callback parameters" });
+      }
       return send(res, 200, {
         userId: "user-1",
         expiresAt: new Date(Date.now() + 3600_000).toISOString()
