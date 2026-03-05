@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SprintCalendarPayload",
+  "type": "object",
+  "required": ["sprintStart", "sprintEnd", "days"],
+  "properties": {
+    "sprintStart": { "type": "string", "format": "date" },
+    "sprintEnd": { "type": "string", "format": "date" },
+    "days": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "assignments"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["issueId", "title", "assignee", "priority", "effortHours", "confidence"],
+              "properties": {
+                "issueId": { "type": "string" },
+                "title": { "type": "string" },
+                "assignee": { "type": "string" },
+                "priority": { "type": "string", "enum": ["low", "normal", "high", "urgent"] },
+                "effortHours": { "type": "number", "minimum": 0 },
+                "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: Sprint Dashboard API (PR-3 Scaffold)
+  version: 0.1.0
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+security:
+  - cookieAuth: []
+paths:
+  /sprints/{sprintId}/calendar:
+    get:
+      summary: Get sprint calendar payload
+      parameters:
+        - in: path
+          name: sprintId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Calendar payload
+          content:
+            application/json:
+              schema:
+                $ref: './calendar-payload.json'
+
+  /sprints/{sprintId}/metrics:
+    get:
+      summary: Get value metrics for current sprint plan
+      parameters:
+        - in: path
+          name: sprintId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Value metrics payload
+          content:
+            application/json:
+              schema:
+                $ref: './value-metrics.json'
+
+  /sprints/{sprintId}/items/{itemId}:
+    patch:
+      summary: Override recommendation fields for one plan item
+      parameters:
+        - in: path
+          name: sprintId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                priority:
+                  type: string
+                  enum: [low, normal, high, urgent]
+                assignee:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                ignored:
+                  type: boolean
+      responses:
+        '200':
+          description: Plan item updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  sprintId:
+                    type: string
+                  itemId:
+                    type: string
+                  updated:
+                    type: boolean
+
+  /sprints/{sprintId}/replan:
+    post:
+      summary: Re-run planner while preserving user overrides
+      parameters:
+        - in: path
+          name: sprintId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated plan + metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calendar:
+                    $ref: './calendar-payload.json'
+                  metrics:
+                    $ref: './value-metrics.json'
