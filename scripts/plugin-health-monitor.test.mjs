@@ -63,49 +63,92 @@ test("buildIssueTitle and body include repo marker and run links", () => {
   assert.match(body, /@0x4007/);
 });
 
-function createGithubMock({ repos, runsByRepo, issuesByRepo, throwRepos = [] }) {
+function createGithubMock({ repos, runsByRepo = {}, runsPagesByRepo = {}, issuesByRepo = {}, throwRepos = [] }) {
   const created = [];
   const updated = [];
 
-  return {
-    created,
-    updated,
-    github: {
-      paginate: async (fn, params) => {
-        if (fn.name === "listForOrg") {
-          return repos;
+  const rest = {
+    repos: { listForOrg: async function listForOrg() {} },
+    actions: {
+      listWorkflowRunsForRepo: async function listWorkflowRunsForRepo({ owner, repo }) {
+        const key = `${owner}/${repo}`;
+        if (throwRepos.includes(key)) {
+          throw new Error("simulated API error");
         }
-        if (fn.name === "listForRepo") {
-          const key = `${params.owner}/${params.repo}`;
-          return issuesByRepo[key] || [];
+
+        const pagedRuns = runsPagesByRepo[key];
+        if (pagedRuns) {
+          return { data: { workflow_runs: pagedRuns[0] || [] } };
         }
-        throw new Error(`Unexpected paginate function: ${fn.name}`);
+
+        return { data: { workflow_runs: runsByRepo[key] || [] } };
       },
-      rest: {
-        repos: { listForOrg: async function listForOrg() {} },
-        actions: {
-          listWorkflowRunsForRepo: async ({ owner, repo }) => {
-            const key = `${owner}/${repo}`;
-            if (throwRepos.includes(key)) {
-              throw new Error("simulated API error");
-            }
-            return { data: { workflow_runs: runsByRepo[key] || [] } };
-          },
-        },
-        issues: {
-          listForRepo: async function listForRepo() {},
-          create: async (payload) => {
-            created.push(payload);
-            return { data: { number: 100 + created.length } };
-          },
-          update: async (payload) => {
-            updated.push(payload);
-            return { data: payload };
-          },
-        },
+    },
+    issues: {
+      listForRepo: async function listForRepo() {},
+      create: async (payload) => {
+        created.push(payload);
+        return { data: { number: 100 + created.length } };
+      },
+      update: async (payload) => {
+        updated.push(payload);
+        return { data: payload };
       },
     },
   };
+
+  const github = {
+    rest,
+    paginate: async (fn, params, mapFn) => {
+      if (fn === rest.repos.listForOrg) {
+        return repos;
+      }
+
+      if (fn === rest.issues.listForRepo) {
+        const key = `${params.owner}/${params.repo}`;
+        return issuesByRepo[key] || [];
+      }
+
+      if (fn === rest.actions.listWorkflowRunsForRepo) {
+        const key = `${params.owner}/${params.repo}`;
+        if (throwRepos.includes(key)) {
+          throw new Error("simulated API error");
+        }
+
+        const pages = runsPagesByRepo[key] || [runsByRepo[key] || []];
+
+        if (!mapFn) {
+          return pages.flat();
+        }
+
+        const collected = [];
+        let shouldStop = false;
+
+        for (const pageRuns of pages) {
+          const mapped = mapFn(
+            { data: { workflow_runs: pageRuns } },
+            () => {
+              shouldStop = true;
+            },
+          );
+
+          if (Array.isArray(mapped)) {
+            collected.push(...mapped);
+          }
+
+          if (shouldStop) {
+            break;
+          }
+        }
+
+        return collected;
+      }
+
+      throw new Error("Unexpected paginate function");
+    },
+  };
+
+  return { created, updated, github };
 }
 
 test("runPluginHealthMonitor creates issue when threshold is met", async () => {
@@ -195,8 +238,42 @@ test("runPluginHealthMonitor dry-run mode does not write issues", async () => {
   assert.equal(updated.length, 0);
 });
 
+test("runPluginHealthMonitor paginates runs before actor filtering", async () => {
+  process.env.TARGET_ORG = "ubiquity-os-marketplace";
+  process.env.FAILURE_THRESHOLD = "3";
+  process.env.DISPATCH_ACTORS = "ubiquity-app[bot]";
+  process.env.DRY_RUN = "false";
+
+  const { github, created } = createGithubMock({
+    repos: [{ owner: { login: "ubiquity-os-marketplace" }, name: "repo-a", full_name: "ubiquity-os-marketplace/repo-a" }],
+    runsPagesByRepo: {
+      "ubiquity-os-marketplace/repo-a": [
+        [
+          { conclusion: "failure", run_number: 7, html_url: "https://x/7", created_at: "2026-03-07T00:00:00Z", actor: { login: "outsider-1" }, name: "CI" },
+          { conclusion: "failure", run_number: 6, html_url: "https://x/6", created_at: "2026-03-06T00:00:00Z", actor: { login: "outsider-2" }, name: "CI" },
+        ],
+        [
+          { conclusion: "failure", run_number: 5, html_url: "https://x/5", created_at: "2026-03-05T00:00:00Z", actor: { login: "ubiquity-app[bot]" }, name: "CI" },
+          { conclusion: "failure", run_number: 4, html_url: "https://x/4", created_at: "2026-03-04T00:00:00Z", actor: { login: "ubiquity-app[bot]" }, name: "CI" },
+          { conclusion: "failure", run_number: 3, html_url: "https://x/3", created_at: "2026-03-03T00:00:00Z", actor: { login: "ubiquity-app[bot]" }, name: "CI" },
+          { conclusion: "success", run_number: 2, html_url: "https://x/2", created_at: "2026-03-02T00:00:00Z", actor: { login: "ubiquity-app[bot]" }, name: "CI" },
+        ],
+      ],
+    },
+    issuesByRepo: {},
+  });
+
+  const core = { info: () => {}, warning: () => {} };
+  const result = await runPluginHealthMonitor({ github, context: { runId: 23 }, core });
+
+  assert.equal(result.alerts, 1);
+  assert.equal(created.length, 1);
+});
+
 test("runPluginHealthMonitor isolates per-repo API errors", async () => {
+  process.env.TARGET_ORG = "ubiquity-os-marketplace";
   process.env.FAILURE_THRESHOLD = "1";
+  process.env.DISPATCH_ACTORS = "";
   process.env.DRY_RUN = "true";
 
   const { github } = createGithubMock({

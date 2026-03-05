@@ -94,6 +94,41 @@ async function findOpenMonitorIssue(github, owner, repo, marker) {
   });
 }
 
+async function fetchCompletedDispatchRuns(github, owner, repo, maxPages = 10) {
+  if (typeof github.paginate === "function") {
+    let fetchedPages = 0;
+
+    return github.paginate(
+      github.rest.actions.listWorkflowRunsForRepo,
+      {
+        owner,
+        repo,
+        event: "workflow_dispatch",
+        status: "completed",
+        per_page: 100,
+      },
+      (response, done) => {
+        fetchedPages += 1;
+        if (fetchedPages >= maxPages) {
+          done();
+        }
+
+        return response.data.workflow_runs || [];
+      },
+    );
+  }
+
+  const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
+    owner,
+    repo,
+    event: "workflow_dispatch",
+    status: "completed",
+    per_page: 100,
+  });
+
+  return runsResponse.data.workflow_runs || [];
+}
+
 export async function runPluginHealthMonitor({ github, context, core }) {
   const org = process.env.TARGET_ORG || "ubiquity-os-marketplace";
   const parsedThreshold = Number.parseInt(process.env.FAILURE_THRESHOLD || "10", 10);
@@ -127,16 +162,8 @@ export async function runPluginHealthMonitor({ github, context, core }) {
     const fullName = repo.full_name;
 
     try {
-      const perPage = Math.min(100, Math.max(50, threshold * 2));
-      const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
-        owner,
-        repo: repoName,
-        event: "workflow_dispatch",
-        status: "completed",
-        per_page: perPage,
-      });
-
-      const filteredRuns = filterRunsByActors(runsResponse.data.workflow_runs || [], allowedActors);
+      const runs = await fetchCompletedDispatchRuns(github, owner, repoName);
+      const filteredRuns = filterRunsByActors(runs, allowedActors);
       const failures = countConsecutiveFailures(filteredRuns);
 
       if (failures < threshold) {
