@@ -15,7 +15,7 @@ Enable managers to correct AI recommendations in seconds and regenerate a new sp
 
 ### PATCH /sprints/{sprintId}/items/{itemId}
 - accepts partial updates to priority/assignee/date/ignored
-- records `updatedBy=user` and timestamp
+- may record actor and timestamp in server-side audit logs
 
 ### POST /sprints/{sprintId}/replan
 - recalculates only impacted items

@@ -11,7 +11,11 @@ async function parseBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   if (!chunks.length) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    return {};
+  }
 }
 
 function match(pathname, pattern) {
@@ -42,7 +46,6 @@ export function createServer() {
     if (req.method === "GET" && pathname === "/auth/github/callback") {
       return send(res, 200, {
         userId: "user-1",
-        accessToken: "demo-token",
         expiresAt: new Date(Date.now() + 3600_000).toISOString()
       });
     }

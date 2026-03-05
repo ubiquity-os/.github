@@ -53,3 +53,14 @@ test("dashboard endpoints return payloads", async () => {
     assert.equal(typeof m.salaryEquivalentSavingsUsd, "number");
   });
 });
+
+test("oauth callback returns non-sensitive session metadata", async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/auth/github/callback?code=abc&state=xyz`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.userId, "user-1");
+    assert.equal(typeof json.expiresAt, "string");
+    assert.equal("accessToken" in json, false);
+  });
+});
