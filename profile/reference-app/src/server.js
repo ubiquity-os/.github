@@ -7,6 +7,11 @@ function send(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function redirect(res, location) {
+  res.writeHead(302, { location });
+  res.end();
+}
+
 async function parseBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -16,6 +21,37 @@ async function parseBody(req) {
   } catch {
     return {};
   }
+}
+
+function parseCookies(cookieHeader = "") {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((acc, part) => {
+      const [rawKey, ...rawValue] = part.split("=");
+      if (!rawKey || !rawValue.length) return acc;
+      acc[rawKey] = decodeURIComponent(rawValue.join("="));
+      return acc;
+    }, {});
+}
+
+function requireSession(req, res) {
+  const cookies = parseCookies(req.headers.cookie || "");
+  const sessionId = cookies.session;
+  if (!sessionId) {
+    send(res, 401, { error: "Unauthorized" });
+    return null;
+  }
+
+  const session = state.sessions.get(sessionId);
+  if (!session || session.expiresAtMs <= Date.now()) {
+    state.sessions.delete(sessionId);
+    send(res, 401, { error: "Unauthorized" });
+    return null;
+  }
+
+  return session;
 }
 
 function match(pathname, pattern) {
@@ -40,7 +76,7 @@ export function createServer() {
     }
 
     if (req.method === "GET" && pathname === "/auth/github/start") {
-      return send(res, 200, { redirect: "https://github.com/login/oauth/authorize" });
+      return redirect(res, "https://github.com/login/oauth/authorize");
     }
 
     if (req.method === "GET" && pathname === "/auth/github/callback") {
@@ -49,24 +85,44 @@ export function createServer() {
       if (!code || !stateParam) {
         return send(res, 400, { error: "Missing OAuth callback parameters" });
       }
-      return send(res, 200, {
-        userId: "user-1",
-        expiresAt: new Date(Date.now() + 3600_000).toISOString()
+
+      const sessionId = randomUUID();
+      const expiresAtMs = Date.now() + 3600_000;
+      const expiresAt = new Date(expiresAtMs).toISOString();
+      state.sessions.set(sessionId, { userId: "user-1", expiresAtMs });
+
+      res.writeHead(200, {
+        "content-type": "application/json",
+        "set-cookie": `session=${encodeURIComponent(sessionId)}; HttpOnly; Path=/; Max-Age=3600; SameSite=Lax`
       });
+      return res.end(JSON.stringify({ userId: "user-1", expiresAt }));
     }
 
     if (req.method === "GET" && pathname === "/orgs") {
+      if (!requireSession(req, res)) return;
       return send(res, 200, state.orgs);
     }
 
     const connectParams = match(pathname, "/orgs/:orgId/connect");
     if (req.method === "POST" && connectParams) {
+      if (!requireSession(req, res)) return;
+
       const body = await parseBody(req);
+      const repositories = body?.repositories;
+      const invalidRepositories =
+        !Array.isArray(repositories) ||
+        repositories.length === 0 ||
+        repositories.some((repo) => typeof repo !== "string" || !repo.trim());
+
+      if (invalidRepositories) {
+        return send(res, 400, { error: "Invalid repositories payload: expected non-empty string array" });
+      }
+
       const jobId = randomUUID();
       state.jobs.set(jobId, {
         jobId,
         orgId: connectParams.orgId,
-        repositories: body.repositories || [],
+        repositories,
         status: "queued",
         progress: 0,
         message: "Ingestion queued"
@@ -76,6 +132,8 @@ export function createServer() {
 
     const jobParams = match(pathname, "/ingestion/jobs/:jobId");
     if (req.method === "GET" && jobParams) {
+      if (!requireSession(req, res)) return;
+
       const job = state.jobs.get(jobParams.jobId);
       if (!job) return send(res, 404, { error: "Job not found" });
       return send(res, 200, job);

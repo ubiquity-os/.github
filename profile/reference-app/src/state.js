@@ -2,6 +2,7 @@ export const state = {
   orgs: [
     { id: "org-1", login: "ubiquity-os", name: "UbiquityOS" }
   ],
+  sessions: new Map(),
   jobs: new Map(),
   sprints: new Map([
     [
