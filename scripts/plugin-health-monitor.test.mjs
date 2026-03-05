@@ -9,6 +9,20 @@ import {
   runPluginHealthMonitor,
 } from "./plugin-health-monitor.mjs";
 
+const MONITOR_ENV_KEYS = [
+  "TARGET_ORG",
+  "FAILURE_THRESHOLD",
+  "ISSUE_MENTIONS",
+  "DISPATCH_ACTORS",
+  "DRY_RUN",
+];
+
+test.afterEach(() => {
+  for (const key of MONITOR_ENV_KEYS) {
+    delete process.env[key];
+  }
+});
+
 test("countConsecutiveFailures counts from latest run until first non-failure", () => {
   const runs = [
     { conclusion: "failure" },

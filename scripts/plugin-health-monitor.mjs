@@ -171,7 +171,8 @@ export async function runPluginHealthMonitor({ github, context, core }) {
       }
 
       alerts += 1;
-      const runsToInclude = filteredRuns.slice(0, Math.max(failures, threshold));
+      const maxRunEntries = Math.min(Math.max(threshold, 10), 50);
+      const runsToInclude = filteredRuns.slice(0, maxRunEntries);
       const marker = toMarker(fullName);
       const title = buildIssueTitle(fullName, failures);
       const body = buildIssueBody({
