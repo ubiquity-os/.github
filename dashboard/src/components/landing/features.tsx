@@ -96,7 +96,7 @@ export function Features() {
           {features.map((feature, i) => (
             <div
               key={feature.title}
-              className="group relative p-6 rounded-xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/60 hover:border-zinc-700 transition-all duration-300"
+              className="group relative p-6 rounded-xl border border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/60 hover:border-zinc-700 transition-all duration-300 animate-fade-in"
               style={{ animationDelay: `${i * 0.05}s` }}
             >
               <div

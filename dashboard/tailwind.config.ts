@@ -89,9 +89,9 @@ const config: Config = {
         },
       },
       animation: {
-        "fade-in": "fade-in 0.5s ease-out forwards",
-        "slide-up": "slide-up 0.6s ease-out forwards",
-        "scale-in": "scale-in 0.3s ease-out forwards",
+        "fade-in": "fade-in 0.5s ease-out both",
+        "slide-up": "slide-up 0.6s ease-out both",
+        "scale-in": "scale-in 0.3s ease-out both",
         shimmer: "shimmer 2s linear infinite",
         pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
