@@ -1,9 +1,9 @@
 #!/bin/bash
-# Plugin Health Monitor
+# Plugin Health Monitor v2
 # Checks all ubiquity-os-marketplace plugin repos for consecutive workflow failures.
 # If 10+ consecutive failures found, posts a notification comment.
 
-set -euo pipefail
+set -eo pipefail
 
 ORG="ubiquity-os-marketplace"
 NOTIFICATION_REPO="ubiquity-os/.github"
@@ -17,35 +17,37 @@ echo "Failure threshold: $FAILURE_THRESHOLD consecutive failures"
 echo "Checking last $RECENT_RUNS runs per repo"
 echo ""
 
-# Get all plugin repos
-repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated" --jq '.[].name')
+# Get all plugin repos (all statuses to detect streak breaks)
+repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated" --jq '.[].name' 2>/dev/null || echo "")
+
+if [ -z "$repos" ]; then
+  echo "Failed to fetch repos. Exiting."
+  exit 1
+fi
 
 failed_repos=()
 
 for repo in $repos; do
   echo "Checking $repo..."
 
-  # Get recent workflow runs (only failed and success to count consecutively)
-  runs=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS&status=failure" --jq '.workflow_runs[].id' 2>/dev/null || true)
+  # Get recent workflow runs with conclusion (all statuses, not just failures)
+  # This lets us properly detect when a streak of failures is broken
+  runs_data=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS" --jq '.workflow_runs[] | "\(.conclusion)"' 2>/dev/null || true)
 
-  if [ -z "$runs" ]; then
-    echo "  ✅ No failures found"
+  if [ -z "$runs_data" ]; then
+    echo "  ✅ No workflow runs found"
     continue
-  }
+  fi
 
   # Count consecutive failures (most recent first)
   consecutive_failures=0
-  last_success_time=""
-
-  for run_id in $runs; do
-    status=$(gh api "repos/$ORG/$repo/actions/runs/$run_id" --jq '.conclusion' 2>/dev/null || echo "unknown")
-    
-    if [ "$status" = "failure" ]; then
+  while IFS= read -r conclusion; do
+    if [ "$conclusion" = "failure" ]; then
       consecutive_failures=$((consecutive_failures + 1))
     else
       break
     fi
-  done
+  done <<< "$runs_data"
 
   if [ "$consecutive_failures" -ge "$FAILURE_THRESHOLD" ]; then
     echo "  🚨 $consecutive_failures consecutive failures!"
@@ -63,23 +65,24 @@ if [ ${#failed_repos[@]} -eq 0 ]; then
   exit 0
 fi
 
-# Build notification message
+# Build notification message (single table)
 message="## 🚨 Plugin Health Alert ($(date -u +%Y-%m-%d))
 
-The following plugins have **$FAILURE_THRESHOLD+ consecutive workflow failures**:
+The following plugins have **${FAILURE_THRESHOLD}+ consecutive workflow failures**:
 
-"
+| Plugin | Consecutive Failures | Actions |
+|--------|----------------------|---------|"
+
 for entry in "${failed_repos[@]}"; do
   repo="${entry%%:*}"
   count="${entry##*:}"
-  message+="| Plugin | Consecutive Failures | Latest Runs |
-|--------|----------------------|-------------|
-| [$repo](https://github.com/$ORG/$repo/actions) | $count | [View](https://github.com/$ORG/$repo/actions) |
-
-"
+  message+="
+| [$repo](https://github.com/$ORG/$repo/actions) | $count | [View](https://github.com/$ORG/$repo/actions) |"
 done
 
-message+="**Total affected: ${#failed_repos[@]} plugins**
+message+="
+
+**Total affected: ${#failed_repos[@]} plugins**
 
 cc @0x4007 @gentlementlegen
 
