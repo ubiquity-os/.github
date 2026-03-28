@@ -5,23 +5,23 @@ import { MoreHorizontal, Plus, Clock, MessageSquare, GripVertical, CheckCircle2,
 import { Button } from "@/components/ui/button";
 
 const MOCK_COLUMNS = [
-  { id: "todo", title: "To Do", count: 4, 
+  { id: "todo", title: "To Do", 
     tasks: [
       { id: "UBI-142", title: "Refactor Telegram A2A Bridge", points: 8, assign: "VD", tags: ["Backend"] },
       { id: "UBI-145", title: "Design Sprint Analytics Graph", points: 5, assign: "ZG", tags: ["UI/UX"] }
     ] 
   },
-  { id: "progress", title: "In Progress", count: 2, 
+  { id: "progress", title: "In Progress", 
     tasks: [
       { id: "UBI-139", title: "Implement Stripe OAuth Checkout", points: 13, assign: "DB", tags: ["Core", "Auth"] }
     ] 
   },
-  { id: "review", title: "Review (CodeRabbit)", count: 1, 
+  { id: "review", title: "Review (CodeRabbit)", 
     tasks: [
       { id: "UBI-120", title: "Fix iOS Safari viewport height bug", points: 3, assign: "ZG", tags: ["Hotfix"] }
     ] 
   },
-  { id: "done", title: "Done", count: 24, 
+  { id: "done", title: "Done", 
     tasks: [
       { id: "UBI-111", title: "Database Migration to Supabase", points: 21, assign: "DB", tags: ["Infra"] }
     ] 
@@ -56,7 +56,7 @@ export default function SprintBoard() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-white/90">{column.title}</h3>
                 <span className="px-2 py-0.5 rounded-full bg-white/10 text-xs font-medium text-white/60">
-                  {column.count}
+                  {column.tasks.length}
                 </span>
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:text-white">

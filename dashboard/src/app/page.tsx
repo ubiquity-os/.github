@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Github, Code, Users, LineChart, Zap, CheckCircle2, Blocks, Cpu } from "lucide-react";
+import { ArrowRight, Github, Code, Users, LineChart, Zap, CheckCircle2, Blocks, Cpu, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from "react";
@@ -61,14 +61,14 @@ export default function LandingPage() {
               <span>Sprint Management evolved for 2026</span>
             </motion.div>
             
-            <motion.variants variants={fadeUp}>
+            <motion.div variants={fadeUp}>
               <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8">
                 Orchestrate code.<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-ubiquity-400 to-ubiquity-700">
                   Deploy at velocity.
                 </span>
               </h1>
-            </motion.variants>
+            </motion.div>
 
             <motion.p variants={fadeUp} className="text-xl text-white/50 mb-12 max-w-2xl leading-relaxed text-balance">
               The AI-native dashboard that converts raw GitHub issues into perfectly load-balanced sprints. Predict costs, balance developers, and track ROI in real-time.
