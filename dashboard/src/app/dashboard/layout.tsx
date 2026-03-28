@@ -23,7 +23,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         </nav>
         <div className="p-4 border-t border-white/5">
-          <Button variant="ghost" className="w-full justify-start text-white/50 hover:text-red-400">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-white/50 hover:text-red-400"
+            onClick={() => {
+              document.cookie = "ubiquity_session=; Max-Age=0; path=/";
+              window.location.href = "/";
+            }}
+          >
             <LogOut className="w-4 h-4 mr-3" /> Sign Out
           </Button>
         </div>
