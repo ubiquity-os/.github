@@ -16,6 +16,7 @@ on:
         default: 10
 
 permissions:
+  contents: read
   issues: write
   actions: read
 
