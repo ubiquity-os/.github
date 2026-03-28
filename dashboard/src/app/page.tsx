@@ -1,14 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Github, Code, Users, LineChart, Zap, CheckCircle2, Blocks, Cpu, Shield } from "lucide-react";
+import { ArrowRight, GitBranch, Code, Users, LineChart, Zap, CheckCircle2, Blocks, Cpu, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState } from "react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } }
 };
 
 const staggerContainer = {
@@ -44,7 +44,7 @@ export default function LandingPage() {
           </div>
           <Link href="/api/auth/github">
             <Button variant="glass" className="gap-2 rounded-full px-6">
-              <Github className="w-4 h-4" />
+              <GitBranch className="w-4 h-4" />
               Sign in with GitHub
             </Button>
           </Link>

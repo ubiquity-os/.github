@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Calendar, BarChart3, Settings, LogOut, Blocks } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, LogOut, Blocks } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 

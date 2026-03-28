@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MoreHorizontal, Plus, Clock, MessageSquare, GripVertical, CheckCircle2, CircleDashed } from "lucide-react";
+import { MoreHorizontal, Plus, GripVertical, CircleDashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MOCK_COLUMNS = [
@@ -66,7 +66,7 @@ export default function SprintBoard() {
 
             {/* Task Area */}
             <div className="p-3 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
-              {column.tasks.map((task, tIdx) => (
+              {column.tasks.map((task) => (
                 <motion.div 
                   key={task.id}
                   whileHover={{ scale: 1.02 }}

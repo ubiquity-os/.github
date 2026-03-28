@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
 
     return response;
 
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json({ error: "GitHub API request timed out after 10 seconds. Terminating connection." }, { status: 504 });
     }
     return NextResponse.json({ error: "Internal Server Error during OAuth data extraction." }, { status: 500 });
