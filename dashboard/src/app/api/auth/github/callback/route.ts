@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  if (!clientId || !clientSecret) {
-    return NextResponse.json({ error: "Server misconfiguration. Missing OAuth credentials." }, { status: 500 });
+  if (!clientId || !clientSecret || !appUrl) {
+    return NextResponse.json({ error: "Server misconfiguration. Missing OAuth credentials or APP URL." }, { status: 500 });
   }
 
   const fetchWithTimeout = async (url: string, init: RequestInit = {}, timeoutMs = 10000) => {
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
         client_id: clientId,
         client_secret: clientSecret,
         code,
+        redirect_uri: `${appUrl}/api/auth/github/callback`,
       }),
     });
 
