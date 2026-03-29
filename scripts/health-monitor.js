@@ -28,34 +28,34 @@ module.exports = async ({ github, context, core }) => {
     for (const repo of repos) {
       if (repo.name === '.github') continue;
 
-      // Fetch workflow runs for the repository
-      const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
-        owner: org,
-        repo: repo.name,
-        per_page: 50,
-      });
+      // Fetch manual dispatch runs for the repository from authorized actors
+      for (const actor of actors) {
+        const runsResponse = await github.rest.actions.listWorkflowRunsForRepo({
+          owner: org,
+          repo: repo.name,
+          actor: actor,
+          event: 'workflow_dispatch',
+          status: 'completed',
+          per_page: failureThreshold,
+        });
 
-      const runs = runsResponse.data.workflow_runs;
-      
-      // Filter for manual dispatches from authorized actors that have completed
-      const relevantRuns = runs.filter(run => 
-        actors.includes(run.actor.login) && 
-        run.event === 'workflow_dispatch' &&
-        run.status === 'completed'
-      );
+        const runs = runsResponse.data.workflow_runs;
+        
+        if (runs.length >= failureThreshold) {
+          const consecutiveFailures = runs.every(run => run.conclusion === 'failure');
 
-      if (relevantRuns.length >= failureThreshold) {
-        const recentRuns = relevantRuns.slice(0, failureThreshold);
-        const consecutiveFailures = recentRuns.every(run => run.conclusion === 'failure');
-
-        if (consecutiveFailures) {
-          core.warning(`Health issue detected in ${repo.name}: 10+ consecutive failures.`);
-          healthIssues.push({
-            name: repo.name,
-            url: repo.html_url,
-            latestFailureUrl: recentRuns[0].html_url,
-            count: recentRuns.length
-          });
+          if (consecutiveFailures) {
+            core.warning(`Health issue detected in ${repo.name} (Actor: ${actor}): 10 consecutive failures.`);
+            healthIssues.push({
+              name: repo.name,
+              actor: actor,
+              url: repo.html_url,
+              latestFailureUrl: runs[0].html_url,
+              count: runs.length
+            });
+            // Skip further actors for this repo if one is already failing 10 times
+            break;
+          }
         }
       }
     }
