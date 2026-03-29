@@ -29,8 +29,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             variant="ghost" 
             className="w-full justify-start text-white/50 hover:text-red-400"
             onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              window.location.href = "/";
+              try {
+                const res = await fetch("/api/auth/logout", { method: "POST" });
+                if (res.ok) {
+                  window.location.href = "/";
+                }
+              } catch {
+                console.error("Logout failed");
+              }
             }}
           >
             <LogOut className="w-4 h-4 mr-3" /> Sign Out

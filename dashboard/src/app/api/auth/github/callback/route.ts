@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid state parameter or missing authorization code. CSRF attack prevented." }, { status: 400 });
   }
 
+  // Clear oauth_state nonce immediately after validation to prevent replay
+  cookieStore.delete("oauth_state");
+
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 

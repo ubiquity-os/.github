@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MoreHorizontal, Plus, GripVertical, CircleDashed } from "lucide-react";
+import { MoreHorizontal, Plus, CircleDashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MOCK_COLUMNS = [
@@ -70,11 +70,10 @@ export default function SprintBoard() {
                 <motion.div 
                   key={task.id}
                   whileHover={{ scale: 1.02 }}
-                  className="bg-[#121214] border border-white/10 p-4 rounded-lg shadow-xl relative group cursor-grab active:cursor-grabbing hover:border-ubiquity-500/50 transition-colors"
+                  className="bg-[#121214] border border-white/10 p-4 rounded-lg shadow-xl relative group hover:border-ubiquity-500/50 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-3 text-white/40 group-hover:text-white/60 transition-colors">
                     <span className="text-xs font-mono">{task.id}</span>
-                    <GripVertical className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <h4 className="font-medium text-white leading-snug mb-4">{task.title}</h4>
                   
