@@ -94,17 +94,17 @@ export default function LandingPage() {
               <div className="space-y-8 glass p-8 rounded-2xl">
                 <div>
                   <div className="flex justify-between mb-4">
-                    <label className="font-medium text-white/80">Team Size (Engineers)</label>
+                    <label htmlFor="team-size" className="font-medium text-white/80">Team Size (Engineers)</label>
                     <span className="text-ubiquity-400 font-mono">{teamSize}</span>
                   </div>
-                  <input type="range" min="1" max="50" value={teamSize} onChange={(e) => setTeamSize(parseInt(e.target.value))} className="w-full accent-ubiquity-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer" />
+                  <input id="team-size" type="range" min="1" max="50" value={teamSize} onChange={(e) => setTeamSize(parseInt(e.target.value))} className="w-full accent-ubiquity-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer" />
                 </div>
                 <div>
                   <div className="flex justify-between mb-4">
-                    <label className="font-medium text-white/80">Sprint Hours / Week</label>
+                    <label htmlFor="sprint-hours" className="font-medium text-white/80">Sprint Hours / Week</label>
                     <span className="text-ubiquity-400 font-mono">{hoursPerSprint}h</span>
                   </div>
-                  <input type="range" min="20" max="80" value={hoursPerSprint} onChange={(e) => setHoursPerSprint(parseInt(e.target.value))} className="w-full accent-ubiquity-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer" />
+                  <input id="sprint-hours" type="range" min="20" max="80" value={hoursPerSprint} onChange={(e) => setHoursPerSprint(parseInt(e.target.value))} className="w-full accent-ubiquity-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer" />
                 </div>
               </div>
             </motion.div>
