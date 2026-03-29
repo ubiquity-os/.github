@@ -5,6 +5,9 @@ export async function getSessionKey(): Promise<Uint8Array> {
   if (!secret) {
     throw new Error("SESSION_SECRET environment variable is strictly required for secure cookie encryption.");
   }
+  if (secret.length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 characters long to ensure cryptographic entropy.");
+  }
   
   // CodeRabbit Fix: Proper Key Derivation for guaranteed 32-byte secret (ASCII/UTF-8 safe)
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));
@@ -21,12 +24,15 @@ export async function encryptToken(payload: string): Promise<string> {
 }
 
 export async function decryptToken(sessionString: string): Promise<string | null> {
+  const key = await getSessionKey(); // Bubble up infrastructure/config errors loudly
   try {
-    const key = await getSessionKey();
     const { payload } = await jwtDecrypt(sessionString, key);
-    return payload.token as string;
+    if (typeof payload.token !== "string") {
+      return null;
+    }
+    return payload.token;
   } catch {
-    // Fails on forged, expired, or invalid cookies
+    // Fails strictly on forged, expired, or invalid cookies
     return null;
   }
 }
