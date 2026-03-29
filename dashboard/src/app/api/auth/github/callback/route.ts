@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import crypto from "crypto";
-
-const SESSION_SECRET = process.env.SESSION_SECRET || "ubiquity-dev-secret-change-in-production-32ch";
-
-function encryptToken(token: string): string {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(SESSION_SECRET.padEnd(32).slice(0, 32)), iv);
-  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]).toString("base64url");
-}
-
+import { encryptToken } from "@/lib/session";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
@@ -100,7 +89,7 @@ export async function GET(request: NextRequest) {
     
     // CodeRabbit V4 Security Fix: Encrypt the access token before storing in cookie.
     // Raw bearer tokens must never be stored as plaintext cookie values.
-    const encryptedSession = encryptToken(accessToken);
+    const encryptedSession = await encryptToken(accessToken);
     response.cookies.set("ubiquity_session", encryptedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
