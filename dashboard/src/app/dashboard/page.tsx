@@ -59,7 +59,7 @@ export default function SprintBoard() {
                   {column.tasks.length}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:text-white">
+              <Button variant="ghost" size="icon" aria-label={`Open actions for ${column.title}`} className="h-8 w-8 text-white/40 hover:text-white">
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </div>

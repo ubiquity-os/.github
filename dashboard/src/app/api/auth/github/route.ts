@@ -20,7 +20,11 @@ export async function GET() {
     maxAge: 600, // 10 minutes
   });
 
-  const redirectUri = encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/github/callback`);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return NextResponse.json({ error: "Missing app URL configuration." }, { status: 500 });
+  }
+  const redirectUri = encodeURIComponent(`${appUrl}/api/auth/github/callback`);
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}&scope=read:user user:email repo&state=${state}`;
 
   return NextResponse.redirect(githubAuthUrl);

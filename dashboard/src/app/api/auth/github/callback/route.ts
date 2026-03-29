@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import crypto from "crypto";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -74,14 +73,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to securely retrieve GitHub user profile." }, { status: 401 });
     }
 
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const url = new URL("/dashboard", request.url);
     
     const response = NextResponse.redirect(url);
     
-    // CodeRabbit Security Fix: Avoid raw access token leakage by storing a secure session hash
-    const secureSessionIdentifier = crypto.createHash('sha256').update(accessToken + process.env.GITHUB_CLIENT_SECRET).digest('hex');
-    response.cookies.set("ubiquity_session", secureSessionIdentifier, {
+    // CodeRabbit Security Fix: Store the actual access token securely in an httpOnly cookie
+    // so it can be used for subsequent authenticated GitHub API calls by the server.
+    response.cookies.set("ubiquity_session", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

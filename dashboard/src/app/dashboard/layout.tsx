@@ -28,8 +28,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Button 
             variant="ghost" 
             className="w-full justify-start text-white/50 hover:text-red-400"
-            onClick={() => {
-              document.cookie = "ubiquity_session=; Max-Age=0; path=/";
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
               window.location.href = "/";
             }}
           >
