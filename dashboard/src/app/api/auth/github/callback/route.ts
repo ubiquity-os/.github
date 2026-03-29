@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import crypto from "crypto";
+
+const SESSION_SECRET = process.env.SESSION_SECRET || "ubiquity-dev-secret-change-in-production-32ch";
+
+function encryptToken(token: string): string {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(SESSION_SECRET.padEnd(32).slice(0, 32)), iv);
+  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, encrypted]).toString("base64url");
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -11,7 +22,12 @@ export async function GET(request: NextRequest) {
 
   // CodeRabbit Security Fix: CSRF State Payload Validation
   if (!code || !returnedState || returnedState !== storedState) {
-    return NextResponse.json({ error: "Invalid state parameter or missing authorization code. CSRF attack prevented." }, { status: 400 });
+    const response = NextResponse.json(
+      { error: "Invalid state parameter or missing authorization code. CSRF attack prevented." },
+      { status: 400 }
+    );
+    response.cookies.set("oauth_state", "", { path: "/", maxAge: 0 });
+    return response;
   }
 
   // Clear oauth_state nonce immediately after validation to prevent replay
@@ -80,9 +96,10 @@ export async function GET(request: NextRequest) {
     
     const response = NextResponse.redirect(url);
     
-    // CodeRabbit Security Fix: Store the actual access token securely in an httpOnly cookie
-    // so it can be used for subsequent authenticated GitHub API calls by the server.
-    response.cookies.set("ubiquity_session", accessToken, {
+    // CodeRabbit V4 Security Fix: Encrypt the access token before storing in cookie.
+    // Raw bearer tokens must never be stored as plaintext cookie values.
+    const encryptedSession = encryptToken(accessToken);
+    response.cookies.set("ubiquity_session", encryptedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
