@@ -13,12 +13,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+FETCHED=false
 for _ in {1..20}; do
   if curl -fsS "$URL" >/tmp/sprint-dashboard-mvp-home.html 2>/dev/null; then
+    FETCHED=true
     break
   fi
   sleep 0.2
 done
+
+if [ "$FETCHED" != "true" ]; then
+  echo "❌ Verification failed: server did not respond after 20 attempts"
+  exit 1
+fi
 
 if ! grep -q "Sprint Management Dashboard" /tmp/sprint-dashboard-mvp-home.html; then
   echo "❌ Verification failed: expected page title/content not found"
