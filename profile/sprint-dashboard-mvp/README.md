@@ -4,7 +4,7 @@ This folder delivers a **mergeable MVP artifact** for `ubiquity-os/.github#14`:
 
 - Conversion-first hero section with **GitHub sign-in** CTA placeholder
 - **Priority quick-set** UI (left/right/up swipe equivalent via buttons)
-- **Sprint calendar assignment** for real team members (skill-aware mock planner)
+- **Sprint calendar assignment** for task planning (skill-aware mock planner with sample assignees)
 - **Quantitative value metrics** (manager time + salary savings)
 
 ## Why in `.github/profile/`

@@ -104,7 +104,11 @@
       }
 
       function assign() {
-        const backlog = [...tasks].sort((a, b) => ({ urgent: 3, high: 2, low: 1 }[b.priority] - ({ urgent: 3, high: 2, low: 1 }[a.priority]) || b.estimate - a.estimate);
+        const backlog = [...tasks].sort((a, b) => {
+          const p = { urgent: 3, high: 2, low: 1 };
+          const priorityDiff = (p[b.priority] ?? 0) - (p[a.priority] ?? 0);
+          return priorityDiff || b.estimate - a.estimate;
+        });
         const plan = days.map((d) => ({ day: d, items: [] }));
 
         backlog.forEach((task, i) => {
