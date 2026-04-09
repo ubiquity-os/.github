@@ -17,30 +17,37 @@ echo "Failure threshold: $FAILURE_THRESHOLD consecutive failures"
 echo "Checking last $RECENT_RUNS runs per repo"
 echo ""
 
-# Get all plugin repos
-repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated" --jq '.[].name')
+# Get all plugin repos (with pagination)
+repos=""
+page=1
+while true; do
+  page_repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated&page=$page" --jq '.[].name' 2>/dev/null || true)
+  [ -z "$page_repos" ] && break
+  repos="$repos $page_repos"
+  count=$(echo "$page_repos" | wc -l)
+  [ "$count" -lt 100 ] && break
+  page=$((page + 1))
+done
+repos=$(echo $repos | xargs)
 
 failed_repos=()
 
 for repo in $repos; do
   echo "Checking $repo..."
 
-  # Get recent workflow runs (only failed and success to count consecutively)
-  runs=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS&status=failure" --jq '.workflow_runs[].id' 2>/dev/null || true)
+  # Get recent completed workflow runs to count consecutive failures
+  runs=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS&status=completed" --jq '.workflow_runs[].conclusion' 2>/dev/null || true)
 
   if [ -z "$runs" ]; then
-    echo "  ✅ No failures found"
+    echo "  ✅ No runs found"
     continue
-  }
+  fi
 
   # Count consecutive failures (most recent first)
   consecutive_failures=0
-  last_success_time=""
 
-  for run_id in $runs; do
-    status=$(gh api "repos/$ORG/$repo/actions/runs/$run_id" --jq '.conclusion' 2>/dev/null || echo "unknown")
-    
-    if [ "$status" = "failure" ]; then
+  for conclusion in $runs; do
+    if [ "$conclusion" = "failure" ]; then
       consecutive_failures=$((consecutive_failures + 1))
     else
       break
