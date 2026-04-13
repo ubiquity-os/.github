@@ -1,0 +1,20 @@
+name: Plugin Health Monitor
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # Run daily at 9:00 UTC
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  issues: write
+
+jobs:
+  check-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check plugin health
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/plugin-health-monitor.sh
