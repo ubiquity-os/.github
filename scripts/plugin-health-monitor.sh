@@ -19,7 +19,7 @@ for repo in $repos; do
 
   # Get recent workflow runs (completed ones only)
   conclusions=$(gh api "/repos/$repo/actions/runs?per_page=$RUNS_TO_CHECK" \
-    --jq '.workflow_runs[] | select(.status == "completed") | .conclusion' 2>/dev/null || true)
+    --jq '.workflow_runs[] | select(.status == "completed") | .conclusion')
 
   if [ -z "$conclusions" ]; then
     echo "  No completed workflow runs found"
