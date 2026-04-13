@@ -23,7 +23,7 @@ for _ in {1..20}; do
 done
 
 if [ "$FETCHED" != "true" ]; then
-  echo "❌ Verification failed: server did not respond after 20 attempts"
+  echo "❌ Verification failed: server did not respond after 20 attempts (check /tmp/sprint-dashboard-mvp-server.log for errors)"
   exit 1
 fi
 
