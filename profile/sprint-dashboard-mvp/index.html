@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UbiquityOS Sprint Dashboard MVP</title>
+    <style>
+      :root { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; color-scheme: dark; }
+      body { margin: 0; background: #0b1020; color: #e6ebff; }
+      .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+      .hero, .card { background: #111831; border: 1px solid #24305b; border-radius: 14px; padding: 18px; }
+      .hero h1 { margin: 0 0 8px; }
+      .hero p { color: #b9c3e6; margin: 0 0 14px; }
+      button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
+      .btn-primary { background: #5b8cff; color: white; }
+      .btn-ghost { background: #1a2448; color: #d8e0ff; }
+      .grid { display: grid; gap: 16px; }
+      .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+      .metric { font-size: 28px; font-weight: 700; margin: 8px 0 2px; }
+      .muted { color: #9fb0e8; font-size: 14px; }
+      .pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #23315f; color: #c6d4ff; }
+      .tasks { display: grid; gap: 10px; margin-top: 12px; }
+      .task { border: 1px solid #2a396f; border-radius: 10px; padding: 10px; background: #101a38; }
+      .task h4 { margin: 0 0 6px; font-size: 14px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      .calendar { display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 8px; overflow: auto; }
+      .col { background: #0e1733; border: 1px solid #28366a; border-radius: 10px; padding: 8px; min-height: 170px; }
+      .col h5 { margin: 0 0 8px; color: #b8c6f5; }
+      .chip { background: #1c2a56; border: 1px solid #324480; border-radius: 8px; padding: 6px; margin: 6px 0; font-size: 12px; }
+      .urgent { border-color: #a13d3d; }
+      .high { border-color: #a1722d; }
+      .low { border-color: #2f7d50; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap grid" style="gap:20px">
+      <section class="hero">
+        <h1>UbiquityOS Sprint Management Dashboard (MVP)</h1>
+        <p>Conversion-focused landing + sprint planner demo for engineering managers. Includes GitHub sign-in placeholder, task prioritization, auto assignment, and ROI metrics.</p>
+        <div class="row">
+          <button class="btn-primary" id="signin">Sign in with GitHub</button>
+          <span class="pill">MVP prototype · static demo</span>
+        </div>
+      </section>
+
+      <section class="grid grid-2">
+        <div class="card">
+          <h3>1) Priority quick-set (swipe alternative)</h3>
+          <p class="muted">Use buttons to classify tasks as low/high/urgent. This simulates swipe-left/right/up input.</p>
+          <div class="tasks" id="taskQueue"></div>
+        </div>
+
+        <div class="card">
+          <h3>2) Value metrics</h3>
+          <div class="metric" id="hoursSaved">0 hrs</div>
+          <div class="muted">Estimated manager assignment time saved this sprint</div>
+          <div class="metric" id="dollarsSaved">$0</div>
+          <div class="muted">Estimated salary savings (@$95/hr engineering manager cost)</div>
+          <div class="metric" id="throughput">0 tasks</div>
+          <div class="muted">Tasks auto-assigned by AI planner</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>3) Calendar-style sprint assignment</h3>
+        <p class="muted">Auto-assignment distributes work by skill tags and availability across a 5-day sprint.</p>
+        <div class="calendar" id="calendar"></div>
+      </section>
+    </div>
+
+    <script>
+      const managerHourly = 95;
+      const assignees = [
+        { name: "Maya", skills: ["frontend", "design"] },
+        { name: "Eli", skills: ["backend", "infra", "api"] },
+        { name: "Noah", skills: ["testing", "frontend"] },
+      ];
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      const tasks = [
+        { id: 1, title: "Fix onboarding auth loop", tags: ["frontend"], estimate: 3, priority: "urgent" },
+        { id: 2, title: "Asana importer skeleton", tags: ["api", "backend"], estimate: 5, priority: "high" },
+        { id: 3, title: "Backlog triage UI", tags: ["design", "frontend"], estimate: 4, priority: "high" },
+        { id: 4, title: "Regression test for planner", tags: ["testing"], estimate: 2, priority: "low" },
+      ];
+
+      const taskQueue = document.getElementById("taskQueue");
+      const calendar = document.getElementById("calendar");
+
+      function renderQueue() {
+        taskQueue.innerHTML = "";
+        tasks.forEach((task) => {
+          const el = document.createElement("div");
+          el.className = `task ${task.priority}`;
+          el.innerHTML = `
+            <h4>${task.title}</h4>
+            <div class="row"><span class="pill">${task.tags.join(", ")}</span><span class="pill">${task.estimate}h</span><span class="pill">${task.priority}</span></div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn-ghost" data-p="low" data-id="${task.id}">Low ←</button>
+              <button class="btn-ghost" data-p="high" data-id="${task.id}">High →</button>
+              <button class="btn-ghost" data-p="urgent" data-id="${task.id}">Urgent ↑</button>
+            </div>`;
+          taskQueue.appendChild(el);
+        });
+      }
+
+      function assign() {
+        const backlog = [...tasks].sort((a, b) => {
+          const p = { urgent: 3, high: 2, low: 1 };
+          const priorityDiff = (p[b.priority] ?? 0) - (p[a.priority] ?? 0);
+          return priorityDiff || b.estimate - a.estimate;
+        });
+        const plan = days.map((d) => ({ day: d, items: [] }));
+
+        backlog.forEach((task, i) => {
+          const candidates = assignees.filter((a) => task.tags.some((t) => a.skills.includes(t)));
+          const pick = candidates[i % Math.max(candidates.length, 1)] || assignees[i % assignees.length];
+          const slot = plan[i % days.length];
+          slot.items.push({ ...task, assignee: pick.name });
+        });
+        return plan;
+      }
+
+      function renderCalendar() {
+        calendar.innerHTML = "";
+        const plan = assign();
+        plan.forEach((slot) => {
+          const col = document.createElement("div");
+          col.className = "col";
+          col.innerHTML = `<h5>${slot.day}</h5>`;
+          slot.items.forEach((item) => {
+            const chip = document.createElement("div");
+            chip.className = "chip";
+            chip.innerHTML = `<strong>${item.title}</strong><br/>${item.assignee} · ${item.estimate}h · ${item.priority}`;
+            col.appendChild(chip);
+          });
+          calendar.appendChild(col);
+        });
+      }
+
+      function renderMetrics() {
+        const assignmentMinutes = tasks.length * 5;
+        const hoursSaved = assignmentMinutes / 60;
+        const dollarsSaved = hoursSaved * managerHourly;
+        document.getElementById("hoursSaved").innerText = `${hoursSaved.toFixed(1)} hrs`;
+        document.getElementById("dollarsSaved").innerText = `$${dollarsSaved.toFixed(0)}`;
+        document.getElementById("throughput").innerText = `${tasks.length} tasks`;
+      }
+
+      taskQueue.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-id]");
+        if (!b) return;
+        const task = tasks.find((t) => t.id === Number(b.dataset.id));
+        task.priority = b.dataset.p;
+        renderQueue();
+        renderCalendar();
+        renderMetrics();
+      });
+
+      document.getElementById("signin").addEventListener("click", () => {
+        alert("MVP placeholder: GitHub OAuth endpoint would start here.");
+      });
+
+      renderQueue();
+      renderCalendar();
+      renderMetrics();
+    </script>
+  </body>
+</html>
