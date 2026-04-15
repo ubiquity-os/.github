@@ -1,6 +1,10 @@
 name: "Plugin Health Monitor"
 description: "Daily cron job that checks all ubiquity-os-marketplace plugins for consecutive workflow failures"
 author: "ubiquity-os"
+inputs:
+  github-token:
+    description: "Token used to query workflow runs and create/update alerts"
+    required: true
 runs:
   using: "composite"
   steps:
@@ -13,3 +17,5 @@ runs:
     - run: npx tsx src/monitor.ts
       shell: bash
       working-directory: plugin-health-monitor
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}

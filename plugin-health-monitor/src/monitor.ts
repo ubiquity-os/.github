@@ -100,8 +100,10 @@ async function checkConsecutiveFailures(repo: string, token: string): Promise<nu
   const runs: any[] = res.data.workflow_runs || [];
   if (runs.length === 0) return 0;
 
-  // Sort by run_number descending to get most recent first
-  runs.sort((a: any, b: any) => b.run_number - a.run_number);
+  // Sort by created_at descending to get most recent first
+  runs.sort(
+    (a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at)
+  );
 
   let consecutive = 0;
   for (const run of runs) {
@@ -144,16 +146,17 @@ async function createOrUpdateIssue(token: string, failedRepos: { name: string; f
   const existingIssue = await findExistingHealthIssue(token);
 
   if (existingIssue) {
-    // Post a comment on the existing issue
-    await postRequest(
+    const res = await postRequest(
       `/repos/${TARGET_REPO.owner}/${TARGET_REPO.repo}/issues/${existingIssue}/comments`,
       token,
       { body }
     );
+    if (!res.status || res.status < 200 || res.status >= 300) {
+      throw new Error(`Failed to comment on issue #${existingIssue}: ${res.status}`);
+    }
     console.log(`Updated existing issue #${existingIssue} with latest health report.`);
   } else {
-    // Create a new issue
-    await postRequest(
+    const res = await postRequest(
       `/repos/${TARGET_REPO.owner}/${TARGET_REPO.repo}/issues`,
       token,
       {
@@ -162,6 +165,9 @@ async function createOrUpdateIssue(token: string, failedRepos: { name: string; f
         labels: ["plugin-health", "automated"],
       }
     );
+    if (!res.status || res.status < 200 || res.status >= 300) {
+      throw new Error(`Failed to create health alert issue: ${res.status}`);
+    }
     console.log("Created new health alert issue.");
   }
 }

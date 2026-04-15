@@ -21,7 +21,10 @@ echo ""
 repos=""
 page=1
 while true; do
-  page_repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated&page=$page" --jq '.[].name' 2>/dev/null || true)
+  if ! page_repos=$(gh api "orgs/$ORG/repos?per_page=100&sort=updated&page=$page" --jq '.[].name' 2>/dev/null); then
+    echo "❌ Failed to list repositories for org $ORG" >&2
+    exit 1
+  fi
   [ -z "$page_repos" ] && break
   repos="$repos $page_repos"
   count=$(echo "$page_repos" | wc -l)
@@ -36,7 +39,10 @@ for repo in $repos; do
   echo "Checking $repo..."
 
   # Get recent completed workflow runs to count consecutive failures
-  runs=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS&status=completed" --jq '.workflow_runs[].conclusion' 2>/dev/null || true)
+  if ! runs=$(gh api "repos/$ORG/$repo/actions/runs?per_page=$RECENT_RUNS&status=completed" --jq '.workflow_runs[].conclusion' 2>/dev/null); then
+    echo "  ⚠️ Failed to fetch runs for $repo" >&2
+    continue
+  fi
 
   if [ -z "$runs" ]; then
     echo "  ✅ No runs found"
@@ -75,18 +81,19 @@ message="## 🚨 Plugin Health Alert ($(date -u +%Y-%m-%d))
 
 The following plugins have **$FAILURE_THRESHOLD+ consecutive workflow failures**:
 
+| Plugin | Consecutive Failures | Latest Runs |
+|--------|----------------------|-------------|
 "
+
 for entry in "${failed_repos[@]}"; do
   repo="${entry%%:*}"
   count="${entry##*:}"
-  message+="| Plugin | Consecutive Failures | Latest Runs |
-|--------|----------------------|-------------|
-| [$repo](https://github.com/$ORG/$repo/actions) | $count | [View](https://github.com/$ORG/$repo/actions) |
-
+  message+="| [$repo](https://github.com/$ORG/$repo/actions) | $count | [View](https://github.com/$ORG/$repo/actions) |
 "
 done
 
-message+="**Total affected: ${#failed_repos[@]} plugins**
+message+="
+**Total affected: ${#failed_repos[@]} plugins**
 
 cc @0x4007 @gentlementlegen
 
