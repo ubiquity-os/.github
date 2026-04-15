@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 /**
  * POST /api/sprint/plan
@@ -8,10 +10,20 @@ import { NextRequest, NextResponse } from "next/server";
  * Falls back to round-robin if no API key is configured.
  */
 export async function POST(req: NextRequest) {
-  const { tasks, members } = (await req.json()) as {
-    tasks: SprintTask[];
-    members: TeamMember[];
-  };
+  // Require authentication
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { tasks?: SprintTask[]; members?: TeamMember[] };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { tasks, members } = body;
 
   if (!tasks?.length || !members?.length) {
     return NextResponse.json({ error: "tasks and members are required" }, { status: 400 });
@@ -38,6 +50,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.3,
         response_format: { type: "json_object" },
       }),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!res.ok) {
@@ -45,10 +58,26 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    const assignments = JSON.parse(data.choices[0].message.content);
+    const raw = JSON.parse(data.choices[0].message.content);
+    const assignments = raw.plan ?? raw;
+
+    // Validate model output: only known members and task IDs
+    const memberSet = new Set(members.map((m) => m.login));
+    const taskSet = new Set(tasks.map((t) => t.id));
+    const validated: Record<string, string[]> = {};
+
+    for (const [member, taskIds] of Object.entries(assignments)) {
+      if (!memberSet.has(member)) continue;
+      validated[member] = (taskIds as string[]).filter((id: string) => taskSet.has(id));
+    }
+
+    // Ensure all members have an entry
+    for (const m of members) {
+      if (!validated[m.login]) validated[m.login] = [];
+    }
 
     return NextResponse.json({
-      assignments: assignments.plan ?? assignments,
+      assignments: validated,
       method: "ai",
     });
   } catch {

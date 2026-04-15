@@ -19,7 +19,7 @@ export default function TaskImport({ onImport, syncing, taskCount }: TaskImportP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!org.trim()) return;
+    if (!org.trim() || !token.trim()) return;
     await onImport(org.trim(), token.trim());
   };
 
@@ -71,7 +71,7 @@ export default function TaskImport({ onImport, syncing, taskCount }: TaskImportP
           </div>
           <button
             type="submit"
-            disabled={syncing || !org.trim()}
+            disabled={syncing || !org.trim() || !token.trim()}
             className="w-full py-2.5 text-sm font-medium rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 transition"
           >
             {syncing ? (

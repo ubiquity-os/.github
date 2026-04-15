@@ -7,7 +7,14 @@ import { Octokit } from "octokit";
  * Scrapes all repos + open issues from a GitHub org and returns them.
  */
 export async function POST(req: NextRequest) {
-  const { org, accessToken } = await req.json();
+  let body: { org?: string; accessToken?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { org, accessToken } = body;
 
   if (!org || !accessToken) {
     return NextResponse.json({ error: "org and accessToken are required" }, { status: 400 });
@@ -25,6 +32,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch open issues for each repo (top 30 per repo to stay within rate limits)
     const tasks: Task[] = [];
+    const failedRepos: string[] = [];
     for (const repo of repos) {
       try {
         const { data: issues } = await octokit.rest.issues.listForRepo({
@@ -52,7 +60,7 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch {
-        // Skip repos we can't access
+        failedRepos.push(repo.name);
       }
     }
 
@@ -60,6 +68,9 @@ export async function POST(req: NextRequest) {
       org,
       repoCount: repos.length,
       tasks,
+      warnings: failedRepos.length
+        ? { failedRepos, failedCount: failedRepos.length }
+        : undefined,
       syncedAt: new Date().toISOString(),
     });
   } catch (error: any) {

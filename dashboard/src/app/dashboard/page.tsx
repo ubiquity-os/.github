@@ -53,6 +53,10 @@ export default function SprintDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ org, accessToken: token }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `Sync failed: ${res.status}`);
+      }
       const data = await res.json();
 
       const imported: Task[] = (data.tasks ?? []).map((t: any) => ({
@@ -85,6 +89,10 @@ export default function SprintDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tasks, members }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `Planning failed: ${res.status}`);
+      }
       const data = await res.json();
       setSprintAssignments(data.assignments);
     } finally {

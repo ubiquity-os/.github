@@ -20,18 +20,24 @@ interface Metrics {
 
 export default function MetricsPanel({ totalTasks, assignedByAI }: MetricsPanelProps) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!totalTasks) return;
+    setMetrics(null);
+    setError(null);
 
     fetch("/api/metrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ totalTasks, assignedByAI }),
     })
-      .then((r) => r.json())
-      .then(setMetrics)
-      .catch(() => {});
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Failed to load metrics");
+        return r.json();
+      })
+      .then((data) => setMetrics(data as Metrics))
+      .catch(() => setError("Failed to load metrics"));
   }, [totalTasks, assignedByAI]);
 
   if (!totalTasks) {
@@ -41,6 +47,10 @@ export default function MetricsPanel({ totalTasks, assignedByAI }: MetricsPanelP
         <p className="text-lg">Import and assign tasks to see metrics.</p>
       </div>
     );
+  }
+
+  if (error) {
+    return <div className="py-8 text-sm text-red-400 text-center">{error}</div>;
   }
 
   if (!metrics) {

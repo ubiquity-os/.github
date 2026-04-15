@@ -1,11 +1,14 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 
+if (!process.env.GITHUB_ID) throw new Error("Missing GITHUB_ID env var");
+if (!process.env.GITHUB_SECRET) throw new Error("Missing GITHUB_SECRET env var");
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: process.env.GITHUB_ID,
+      clientSecret: process.env.GITHUB_SECRET,
     }),
   ],
   callbacks: {
@@ -16,7 +19,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      (session as any).accessToken = token.accessToken;
+      // Keep OAuth tokens server-only; do not expose to client
       return session;
     },
   },

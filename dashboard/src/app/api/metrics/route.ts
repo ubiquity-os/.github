@@ -7,10 +7,29 @@ import { NextRequest, NextResponse } from "next/server";
  * Calculates time & cost savings from automated sprint assignment.
  */
 export async function POST(req: NextRequest) {
-  const { totalTasks, assignedByAI } = (await req.json()) as {
-    totalTasks: number;
-    assignedByAI: number;
-  };
+  let body: { totalTasks: number; assignedByAI: number };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { totalTasks, assignedByAI } = body;
+
+  if (
+    typeof totalTasks !== "number" ||
+    typeof assignedByAI !== "number" ||
+    !Number.isFinite(totalTasks) ||
+    !Number.isFinite(assignedByAI) ||
+    totalTasks < 0 ||
+    assignedByAI < 0 ||
+    assignedByAI > totalTasks
+  ) {
+    return NextResponse.json(
+      { error: "totalTasks and assignedByAI must be non-negative finite numbers with assignedByAI <= totalTasks" },
+      { status: 400 }
+    );
+  }
 
   const minutesPerTask = Number(process.env.MINUTES_PER_MANUAL_ASSIGNMENT) || 5;
   const hourlyRate = Number(process.env.ENG_MANAGER_HOURLY_RATE) || 75;
