@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UbiquityOS Sprint Management Dashboard</title>
+  <meta name="description" content="Conversion-focused sprint management dashboard prototype for engineering managers." />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a12;
+      --panel: #101826;
+      --panel-2: #0b1220;
+      --text: #edf5ff;
+      --muted: #92a4bd;
+      --line: #24334d;
+      --blue: #6aa9ff;
+      --green: #63f1b5;
+      --pink: #ff7abf;
+      --orange: #ffbe68;
+      --purple: #9d8cff;
+      --danger: #ff6b7a;
+      --shadow: 0 28px 80px rgba(0, 0, 0, .35);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(56, 115, 255, .25), transparent 30rem),
+        radial-gradient(circle at 88% 4%, rgba(255, 122, 191, .18), transparent 28rem),
+        linear-gradient(180deg, #070a12 0%, #0b1020 50%, #070a12 100%);
+      color: var(--text);
+    }
+    a { color: var(--blue); }
+    header, main, footer { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 64px 0 34px; }
+    .nav { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 46px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: -.02em; }
+    .logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--green), var(--blue)); box-shadow: 0 12px 30px rgba(99,241,181,.22); }
+    .nav small { color: var(--muted); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: 28px; align-items: stretch; }
+    .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: .16em; font-size: 12px; font-weight: 900; }
+    h1 { font-size: clamp(42px, 6.5vw, 78px); line-height: .95; margin: 16px 0 20px; letter-spacing: -.06em; }
+    h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.03; letter-spacing: -.04em; margin: 0 0 16px; }
+    h3 { margin: 0 0 10px; }
+    p { color: #c8d6e8; line-height: 1.6; }
+    .lead { font-size: clamp(18px, 2vw, 23px); max-width: 820px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    button, .button {
+      appearance: none;
+      border: 1px solid rgba(106,169,255,.45);
+      background: linear-gradient(135deg, #005fcc, #5842e3);
+      color: white;
+      font-weight: 850;
+      border-radius: 999px;
+      padding: 13px 18px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 18px 50px rgba(34, 125, 255, .28);
+    }
+    button.secondary, .button.secondary { background: #0d1525; color: #d8e7fb; border-color: var(--line); box-shadow: none; }
+    button.ghost { background: transparent; border-color: var(--line); box-shadow: none; }
+    button:focus-visible, input:focus-visible, select:focus-visible, .button:focus-visible { outline: 3px solid rgba(99,241,181,.65); outline-offset: 2px; }
+    .card {
+      background: linear-gradient(180deg, rgba(16,24,38,.94), rgba(10,16,29,.94));
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .mock-login { display: grid; gap: 16px; align-content: start; }
+    .safe-note { color: #a9bbd3; font-size: 13px; border: 1px dashed #38506f; border-radius: 16px; padding: 12px; background: rgba(13,21,37,.65); }
+    .panel-title { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 14px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; background: #0a1020; color: #b7c8df; padding: 7px 11px; font-size: 12px; font-weight: 750; }
+    .grid { display: grid; gap: 18px; }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-2 { grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr); }
+    section { margin: 28px 0; }
+    .metric { font-size: 39px; font-weight: 950; letter-spacing: -.05em; margin: 4px 0; }
+    .muted { color: var(--muted); }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { color: #b6c9e2; font-size: 13px; font-weight: 800; display: grid; gap: 6px; }
+    input, select {
+      width: 100%;
+      color: var(--text);
+      background: #07101f;
+      border: 1px solid #263955;
+      border-radius: 14px;
+      padding: 12px 13px;
+      font: inherit;
+    }
+    input[type="range"] { padding: 0; accent-color: var(--green); }
+    .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: pipe; }
+    .pipeline article { position: relative; min-height: 142px; }
+    .pipeline article::before { counter-increment: pipe; content: counter(pipe); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 12px; background: rgba(99,241,181,.12); color: var(--green); font-weight: 950; margin-bottom: 12px; }
+    .calendar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .day { min-height: 186px; border: 1px solid var(--line); border-radius: 18px; padding: 12px; background: #08101f; }
+    .day h4 { margin: 0 0 10px; color: #bdd0ea; font-size: 13px; }
+    .task { border-left: 4px solid var(--blue); background: #121d31; border-radius: 14px; padding: 9px; margin-bottom: 9px; font-size: 12px; }
+    .task b { display: block; color: #fff; margin-bottom: 2px; }
+    .task.urgent { border-color: var(--danger); }
+    .task.high { border-color: var(--pink); }
+    .task.medium { border-color: var(--orange); }
+    .task.low { border-color: var(--green); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 12px 10px; vertical-align: top; }
+    th { color: #b7c9e1; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
+    td { color: #d8e5f6; font-size: 14px; }
+    .score { color: var(--green); font-weight: 950; }
+    .swipe-card { border: 1px solid #355274; border-radius: 22px; padding: 18px; background: linear-gradient(135deg, #18243b, #0c1424); min-height: 220px; }
+    .swipe-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+    .swipe-actions button { border-radius: 16px; padding: 12px; box-shadow: none; }
+    .low-choice { background: rgba(99,241,181,.12); }
+    .urgent-choice { background: rgba(255,107,122,.16); }
+    .high-choice { background: rgba(255,122,191,.16); }
+    .owner-list { display: grid; gap: 10px; }
+    .owner { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 18px; padding: 10px; background: #091222; }
+    .avatar { width: 44px; height: 44px; border-radius: 16px; display: grid; place-items: center; font-weight: 950; background: linear-gradient(135deg, #264dff, #22ce9f); }
+    .bar { height: 8px; background: #0a1020; border-radius: 999px; overflow: hidden; border: 1px solid #213451; margin-top: 7px; }
+    .fill { height: 100%; width: var(--w); background: linear-gradient(90deg, var(--green), var(--blue)); }
+    .status { min-height: 22px; color: var(--green); font-weight: 800; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { min-width: 720px; }
+    .table-wrap:focus-visible { outline: 3px solid rgba(99,241,181,.65); outline-offset: 2px; }
+    footer { color: #8294ad; padding: 34px 0 60px; }
+    @media (max-width: 920px) { .hero, .cols-2, .cols-3, .pipeline, .calendar { grid-template-columns: 1fr; } .input-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav" aria-label="Prototype navigation">
+      <div class="brand"><span class="logo" aria-hidden="true"></span><span>UbiquityOS Sprint Manager</span></div>
+      <small>Static MVP · read-only first · no secrets</small>
+    </nav>
+    <div class="hero">
+      <section aria-labelledby="hero-title">
+        <div class="eyebrow">Issue #14 conversion funnel</div>
+        <h1 id="hero-title">Turn a GitHub backlog into next sprint assignments in minutes.</h1>
+        <p class="lead">A focused sign-up and dashboard experience for engineering managers: import GitHub issues, parse specifications, estimate effort, prioritize revenue-impacting work, and quantify how much manager time the system saves.</p>
+        <div class="actions">
+          <button id="github-sign-in" type="button" aria-describedby="oauth-scope-note">Sign in with GitHub</button>
+          <a class="button secondary" href="#dashboard">Preview sprint plan</a>
+          <a class="button secondary" href="#implementation">Backend handoff</a>
+        </div>
+        <p id="oauth-scope-note" class="safe-note">Demo button intentionally mocks OAuth. Production should request read-only GitHub org/repo scopes first and ask for write-back only after manager approval.</p>
+      </section>
+      <aside class="card mock-login" aria-labelledby="intake-title">
+        <div class="panel-title">
+          <div><span class="pill">2-minute intake</span><h3 id="intake-title">Connect an organization</h3></div>
+          <span class="pill">No write scope</span>
+        </div>
+        <label>GitHub organization
+          <input id="org-input" value="ubiquity-os" aria-label="GitHub organization" />
+        </label>
+        <label>Backlog source
+          <select id="source-select" aria-label="Backlog source">
+            <option>GitHub issues</option>
+            <option>GitHub issues + Jira placeholder</option>
+            <option>GitHub issues + Asana placeholder</option>
+          </select>
+        </label>
+        <label>Backlog size: <span id="backlog-output">147</span> issues
+          <input id="backlog-slider" type="range" min="20" max="520" value="147" aria-label="Backlog size" />
+        </label>
+        <div class="actions"><button id="generate-plan" type="button">Generate sprint plan</button><button class="secondary" id="reset-demo" type="button">Reset demo</button></div>
+        <div class="status" id="status-line" role="status" aria-live="polite">Ready to import GitHub issues.</div>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section class="grid cols-3" aria-label="Return on investment metrics">
+      <article class="card"><div class="muted">Assignment time saved</div><div class="metric" id="hours-saved">12.3h</div><div class="muted">Using 5 minutes per issue from the bounty brief.</div></article>
+      <article class="card"><div class="muted">Manager salary equivalent</div><div class="metric" id="cost-saved">$1,470</div><div class="muted">Default fully loaded engineering manager cost: $120/hour.</div></article>
+      <article class="card"><div class="muted">Sprint confidence</div><div class="metric" id="plan-confidence">88%</div><div class="muted">Weighted by issue clarity, owner fit, and priority signal.</div></article>
+    </section>
+
+    <section aria-labelledby="pipeline-title">
+      <div class="panel-title"><div><span class="pill">GitHub org scrape → vector embeddings → sprint plan</span><h2 id="pipeline-title">Manager conversion journey</h2></div></div>
+      <div class="pipeline">
+        <article class="card"><h3>GitHub intake</h3><p>Read issues, labels, comments, assignees, milestones, and repository ownership from selected organizations.</p></article>
+        <article class="card"><h3>Spec parsing</h3><p>Extract issue intent, blockers, impact, dependencies, and time estimates from natural-language specifications.</p></article>
+        <article class="card"><h3>Priority bootstrap</h3><p>Use AI priority suggestions plus a Tinder-like labeling flow: left for low, right for high, up for urgent.</p></article>
+        <article class="card"><h3>ROI close</h3><p>Show a calendar plan and quantify saved manager-hours before asking for paid signup.</p></article>
+      </div>
+    </section>
+
+    <section id="dashboard" class="grid cols-2" aria-labelledby="dashboard-title">
+      <article class="card">
+        <div class="panel-title"><div><span class="pill">Upcoming sprint</span><h2 id="dashboard-title">Team calendar</h2></div><span class="pill">Auto-assigned</span></div>
+        <div class="calendar" id="calendar" aria-label="Sprint calendar"></div>
+      </article>
+      <aside class="card" aria-labelledby="triage-title">
+        <div class="panel-title"><div><span class="pill">Priority training signal</span><h2 id="triage-title">Swipe-style triage</h2></div><span class="pill" id="labeled-count">0 labeled</span></div>
+        <div class="swipe-card" id="triage-card" tabindex="0" aria-label="Current backlog item to prioritize"></div>
+        <div class="swipe-actions" aria-label="Priority choices">
+          <button class="secondary low-choice" type="button" data-priority="Low">← Low</button>
+          <button class="secondary urgent-choice" type="button" data-priority="Urgent">↑ Urgent</button>
+          <button class="secondary high-choice" type="button" data-priority="High">High →</button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="grid cols-2" aria-labelledby="assignment-title">
+      <article class="card">
+        <div class="panel-title"><div><span class="pill">AI-assisted planning</span><h2 id="assignment-title">Assignment rationale</h2></div></div>
+        <div class="table-wrap" tabindex="0" aria-label="Scrollable task assignment rationale">
+          <table aria-label="Task assignment rationale">
+            <thead><tr><th>Issue</th><th>Owner</th><th>Priority</th><th>Estimate</th><th>Parsed signal</th><th>Confidence</th></tr></thead>
+            <tbody id="assignment-rows"></tbody>
+          </table>
+        </div>
+      </article>
+      <aside class="card" aria-labelledby="team-title">
+        <div class="panel-title"><div><span class="pill">Capacity-aware</span><h2 id="team-title">Team fit</h2></div></div>
+        <div class="owner-list" id="owners"></div>
+      </aside>
+    </section>
+
+    <section id="implementation" class="grid cols-3" aria-label="Implementation handoff">
+      <article class="card"><h3>Backend contract</h3><p>GitHub OAuth, issue ingestion, embedding generation, sprint-plan scoring, and ROI endpoints are separated so read-only onboarding can ship before write-back.</p></article>
+      <article class="card"><h3>Revenue hooks</h3><p>ROI scales with backlog size, showing larger organizations larger savings. This directly supports engineering-manager conversion copy.</p></article>
+      <article class="card"><h3>Import expansion</h3><p>Asana and Jira markers are present as coming-next connectors while the MVP stays GitHub-first and reviewable.</p></article>
+    </section>
+  </main>
+
+  <footer>
+    Built for UbiquityOS issue #14. This static prototype contains no credentials, no live OAuth token handling, no external scripts, and no GitHub write-back.
+  </footer>
+
+  <script>
+    const team = [
+      { name: 'Maya', role: 'Payments lead', skills: ['billing', 'reliability'], capacity: 76 },
+      { name: 'Jon', role: 'Platform engineer', skills: ['infra', 'api'], capacity: 68 },
+      { name: 'Iris', role: 'Frontend specialist', skills: ['ux', 'dashboard'], capacity: 61 },
+      { name: 'Sam', role: 'Developer experience', skills: ['tooling', 'docs'], capacity: 54 }
+    ];
+    const tasks = [
+      { id: 8842, title: 'Fix checkout retry race when provider webhook is delayed', owner: 'Maya', priority: 'Urgent', hours: 6, signal: 'Revenue-impacting failed payments', confidence: 94, day: 'Mon' },
+      { id: 8910, title: 'Add repository-level sprint import progress states', owner: 'Iris', priority: 'High', hours: 5, signal: 'Signup activation friction', confidence: 89, day: 'Tue' },
+      { id: 8755, title: 'Cache GitHub issue embeddings by repository sync SHA', owner: 'Jon', priority: 'High', hours: 8, signal: 'Cost and latency reduction', confidence: 87, day: 'Wed' },
+      { id: 9031, title: 'Write manager-facing onboarding checklist', owner: 'Sam', priority: 'Medium', hours: 3, signal: 'Conversion support content', confidence: 82, day: 'Thu' },
+      { id: 8664, title: 'Render blocked-task warnings in calendar cells', owner: 'Iris', priority: 'Medium', hours: 4, signal: 'Sprint-plan trust', confidence: 84, day: 'Fri' },
+      { id: 8588, title: 'Defer internal lint rule cleanup until after launch', owner: 'Sam', priority: 'Low', hours: 2, signal: 'Internal tooling only', confidence: 78, day: 'Fri' }
+    ];
+    const initialTaskPriorities = new Map(tasks.map(task => [task.id, task.priority]));
+    let triageIndex = 0;
+    let labeled = 0;
+
+    function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+    function updateRoi() {
+      const backlog = Number(document.getElementById('backlog-slider').value);
+      const hours = backlog * 5 / 60;
+      const cost = hours * 120;
+      document.getElementById('backlog-output').textContent = backlog;
+      document.getElementById('hours-saved').textContent = hours.toFixed(1) + 'h';
+      document.getElementById('cost-saved').textContent = money(cost);
+      document.getElementById('plan-confidence').textContent = Math.min(96, Math.round(82 + backlog / 25)) + '%';
+    }
+    function renderCalendar() {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      document.getElementById('calendar').innerHTML = days.map(day => {
+        const safeDay = escapeHtml(day);
+        const dayTasks = tasks.filter(task => task.day === day).map(task => `<div class="task ${escapeHtml(task.priority.toLowerCase())}"><b>#${task.id} ${escapeHtml(task.owner)}</b>${escapeHtml(task.title)}<br><span class="muted">${escapeHtml(task.priority)} · ${task.hours}h</span></div>`).join('');
+        return `<div class="day"><h4>${safeDay}</h4>${dayTasks || '<span class="muted">Capacity buffer</span>'}</div>`;
+      }).join('');
+    }
+    function renderRows() {
+      document.getElementById('assignment-rows').innerHTML = tasks.map(task => `<tr><td>#${task.id}<br>${escapeHtml(task.title)}</td><td>${escapeHtml(task.owner)}</td><td>${escapeHtml(task.priority)}</td><td>${task.hours}h</td><td>${escapeHtml(task.signal)}</td><td class="score">${task.confidence}%</td></tr>`).join('');
+    }
+    function renderOwners() {
+      document.getElementById('owners').innerHTML = team.map(person => `<div class="owner"><div class="avatar" aria-hidden="true">${escapeHtml(person.name[0])}</div><div><b>${escapeHtml(person.name)}</b><br><span class="muted">${escapeHtml(person.role)} · ${escapeHtml(person.skills.join(', '))}</span><div class="bar" aria-label="${escapeHtml(person.name)} capacity ${person.capacity}%"><div class="fill" style="--w:${person.capacity}%"></div></div></div><span class="score">${person.capacity}%</span></div>`).join('');
+    }
+    function renderTriage() {
+      const task = tasks[triageIndex % tasks.length];
+      document.getElementById('triage-card').innerHTML = `<span class="pill">Issue #${task.id} · ${escapeHtml(task.owner)}</span><h3>${escapeHtml(task.title)}</h3><p>${escapeHtml(task.signal)}. AI estimate: ${escapeHtml(task.priority.toLowerCase())} priority, ${task.hours}h, best owner ${escapeHtml(task.owner)}.</p><p class="muted">Use labels to teach business priority before automated sprint write-back.</p>`;
+      document.getElementById('labeled-count').textContent = labeled + ' labeled';
+    }
+    function choosePriority(priority) {
+      const task = tasks[triageIndex % tasks.length];
+      task.priority = priority;
+      labeled += 1;
+      triageIndex += 1;
+      document.getElementById('status-line').textContent = `Labeled #${task.id} as ${priority}. Sprint plan refreshed.`;
+      renderTriage();
+      renderCalendar();
+      renderRows();
+    }
+    function generatePlan() {
+      const org = document.getElementById('org-input').value.trim() || 'selected-org';
+      document.getElementById('status-line').textContent = `Imported ${document.getElementById('backlog-slider').value} ${org} issues, generated embeddings, and refreshed sprint plan.`;
+      updateRoi();
+    }
+    document.getElementById('backlog-slider').addEventListener('input', updateRoi);
+    document.getElementById('generate-plan').addEventListener('click', generatePlan);
+    document.getElementById('github-sign-in').addEventListener('click', () => {
+      document.getElementById('status-line').textContent = 'GitHub OAuth mocked: read-only org/repo scope requested before dashboard generation.';
+      document.getElementById('org-input').focus();
+    });
+    document.getElementById('reset-demo').addEventListener('click', () => {
+      document.getElementById('backlog-slider').value = 147;
+      labeled = 0;
+      triageIndex = 0;
+      tasks.forEach(task => { task.priority = initialTaskPriorities.get(task.id); });
+      document.getElementById('status-line').textContent = 'Ready to import GitHub issues.';
+      updateRoi();
+      renderCalendar();
+      renderRows();
+      renderTriage();
+    });
+    document.querySelectorAll('[data-priority]').forEach(button => button.addEventListener('click', () => choosePriority(button.dataset.priority)));
+    updateRoi();
+    renderCalendar();
+    renderRows();
+    renderOwners();
+    renderTriage();
+  </script>
+</body>
+</html>
