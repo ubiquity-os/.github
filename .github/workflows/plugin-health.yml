@@ -1,0 +1,92 @@
+name: Plugin Health Monitor
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+  workflow_dispatch:      # Manual trigger for testing
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  check-plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check plugin health
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const MAX_CONSECUTIVE_FAILURES = 10;
+            const NOTIFY_ISSUE_NUMBER = 12;
+            
+            // Get all repos in ubiquity-os-marketplace
+            const { data: repos } = await github.rest.repos.listForOrg({
+              org: 'ubiquity-os-marketplace',
+              type: 'all',
+              per_page: 100,
+            });
+            
+            const unhealthy = [];
+            
+            for (const repo of repos) {
+              // Skip archived/forked repos
+              if (repo.archived || repo.fork) continue;
+              
+              try {
+                // Get recent workflow runs
+                const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+                  owner: 'ubiquity-os-marketplace',
+                  repo: repo.name,
+                  per_page: MAX_CONSECUTIVE_FAILURES,
+                  status: 'completed',
+                });
+                
+                if (runs.workflow_runs.length === 0) continue;
+                
+                // Check for consecutive failures
+                let consecutiveFailures = 0;
+                for (const run of runs.workflow_runs) {
+                  if (run.conclusion === 'failure' || run.conclusion === 'cancelled') {
+                    consecutiveFailures++;
+                  } else {
+                    break; // Stop counting at first success
+                  }
+                }
+                
+                if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                  unhealthy.push({
+                    name: repo.name,
+                    failures: consecutiveFailures,
+                    url: repo.html_url,
+                  });
+                }
+              } catch (err) {
+                console.log(`Skipping ${repo.name}: ${err.message}`);
+              }
+            }
+            
+            // Notify if unhealthy plugins found
+            if (unhealthy.length > 0) {
+              const lines = unhealthy.map(p => 
+                `- **${p.name}** — ${p.failures} consecutive failures (${p.url})`
+              );
+              
+              const body = `## ⚠️ Plugin Health Alert\n\n` +
+                `The following plugins have **${MAX_CONSECUTIVE_FAILURES}+ consecutive workflow failures**:\n\n` +
+                lines.join('\n') +
+                `\n\n---\n@0x4007 @gentlementlegen`;
+              
+              await github.rest.issues.createComment({
+                owner: 'ubiquity-os',
+                repo: '.github',
+                issue_number: NOTIFY_ISSUE_NUMBER,
+                body,
+              });
+              
+              console.log(`Reported ${unhealthy.length} unhealthy plugins`);
+            } else {
+              console.log('All plugins healthy');
+            }
