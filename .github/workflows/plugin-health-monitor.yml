@@ -1,0 +1,49 @@
+name: Plugin Health Monitor
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run monitor
+        id: monitor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_ORG: ubiquity-os-marketplace
+          FAILURE_STREAK_THRESHOLD: "10"
+          OUTPUT_PATH: profile/plugin-health-report.json
+        run: |
+          node profile/scripts/plugin-health-monitor.mjs || true
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-health-report
+          path: profile/plugin-health-report.json
+
+      - name: Fail when threshold exceeded
+        run: |
+          if [ -f profile/plugin-health-report.json ]; then
+            count=$(jq -r '.findings_count // 0' profile/plugin-health-report.json)
+            echo "findings_count=$count"
+            if [ "$count" -ge 1 ]; then
+              echo "Detected workflow failure streak >= 10"
+              exit 1
+            fi
+          fi
