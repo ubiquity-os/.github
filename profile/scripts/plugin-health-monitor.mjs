@@ -125,6 +125,18 @@ function formatAlertComment(findings) {
  */
 async function postAlertComment(findings) {
   const body = formatAlertComment(findings);
+  const comments = await api(
+    `/repos/${alertRepo}/issues/${alertIssueNumber}/comments?per_page=100&sort=created&direction=desc`
+  );
+  const duplicate = Array.isArray(comments)
+    ? comments.find((comment) => comment?.body === body)
+    : null;
+  if (duplicate?.html_url) {
+    return {
+      html_url: duplicate.html_url,
+      duplicate: true
+    };
+  }
   const response = await api(`/repos/${alertRepo}/issues/${alertIssueNumber}/comments`, {
     method: "POST",
     headers: {
@@ -179,6 +191,7 @@ async function main() {
     const comment = await postAlertComment(findings);
     if (comment?.html_url) {
       report.alert_comment_url = comment.html_url;
+      report.alert_comment_duplicate = Boolean(comment?.duplicate);
       await fs.writeFile(outPath, JSON.stringify(report, null, 2) + "\n");
       console.log(JSON.stringify({ alert_comment_url: comment.html_url }, null, 2));
     }
