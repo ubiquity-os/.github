@@ -98,10 +98,14 @@ jobs:
           fi
 
           if [ -f profile/plugin-health-report.json ]; then
-            count=$(jq -r '.findings_count // 0' profile/plugin-health-report.json)
-            echo "findings_count=$count"
-            if [ "$count" -ge 1 ]; then
-              echo "Detected workflow failure streak >= 10"
-              exit 1
-            fi
+            node <<'NODE'
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('profile/plugin-health-report.json', 'utf8'));
+            const count = Number(report.findings_count || 0);
+            console.log(`findings_count=${count}`);
+            if (count >= 1) {
+              console.error('Detected workflow failure streak >= 10');
+              process.exit(1);
+            }
+            NODE
           fi
