@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildFailureContext,
   collectFailureStreak,
   formatAlertComment,
   formatFailureContext
@@ -63,4 +64,49 @@ test("formatAlertComment includes summary and report path", () => {
   assert.match(body, />= 10 consecutive workflow failures/);
   assert.match(body, /`acme\/plugin-a`/);
   assert.match(body, /Report written to `profile\/plugin-health-report\.json`/);
+});
+
+test("buildFailureContext keeps the latest failing run context and failed jobs", async () => {
+  const calls = [];
+  const api = async (path) => {
+    calls.push(path);
+    return {
+      jobs: [
+        {
+          conclusion: "failure",
+          name: "build",
+          html_url: "https://github.com/org/repo/actions/runs/123/job/456",
+          steps: [
+            { conclusion: "failure", name: "lint" },
+            { conclusion: "failure", name: "test" },
+            { conclusion: "success", name: "package" }
+          ]
+        },
+        {
+          conclusion: "success",
+          name: "docs",
+          html_url: "https://github.com/org/repo/actions/runs/123/job/999",
+          steps: [{ conclusion: "failure", name: "ignored" }]
+        }
+      ]
+    };
+  };
+
+  const context = await buildFailureContext(api, {
+    jobs_url: "https://api.github.com/repos/org/repo/actions/runs/123/jobs?per_page=100",
+    html_url: "https://github.com/org/repo/actions/runs/123",
+    head_branch: "main",
+    head_sha: "abcdef1234567890"
+  });
+
+  assert.deepEqual(calls, ["/repos/org/repo/actions/runs/123/jobs?per_page=100"]);
+  assert.equal(context.run_url, "https://github.com/org/repo/actions/runs/123");
+  assert.equal(context.head_branch, "main");
+  assert.equal(context.head_sha, "abcdef1234567890");
+  assert.equal(context.failed_jobs.length, 1);
+  assert.deepEqual(context.failed_jobs[0], {
+    name: "build",
+    html_url: "https://github.com/org/repo/actions/runs/123/job/456",
+    failed_steps: ["lint", "test"]
+  });
 });
