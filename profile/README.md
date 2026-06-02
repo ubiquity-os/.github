@@ -13,6 +13,7 @@ This profile scans public repositories in `ubiquity-os-marketplace` for workflow
 
 ```bash
 GITHUB_TOKEN=... node profile/scripts/plugin-health-monitor.mjs
+node --test profile/scripts/plugin-health-monitor.test.mjs
 ```
 
 ## Environment
