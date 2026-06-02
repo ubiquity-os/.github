@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildFailureContext,
   collectFailureStreak,
+  findDuplicateAlertComment,
   formatAlertComment,
   formatFailureContext
 } from "./plugin-health-monitor-lib.mjs";
@@ -64,6 +65,21 @@ test("formatAlertComment includes summary and report path", () => {
   assert.match(body, />= 10 consecutive workflow failures/);
   assert.match(body, /`acme\/plugin-a`/);
   assert.match(body, /Report written to `profile\/plugin-health-report\.json`/);
+});
+
+test("findDuplicateAlertComment returns the matching comment when bodies are identical", () => {
+  const comments = [
+    { body: "first", html_url: "https://github.com/example/1" },
+    { body: "target body", html_url: "https://github.com/example/2" },
+    { body: "other", html_url: "https://github.com/example/3" }
+  ];
+
+  const duplicate = findDuplicateAlertComment(comments, "target body");
+
+  assert.deepEqual(duplicate, {
+    body: "target body",
+    html_url: "https://github.com/example/2"
+  });
 });
 
 test("buildFailureContext keeps the latest failing run context and failed jobs", async () => {

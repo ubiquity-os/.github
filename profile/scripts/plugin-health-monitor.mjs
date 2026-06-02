@@ -7,6 +7,7 @@ import fs from "node:fs/promises";
 import {
   buildFailureContext,
   collectFailureStreak,
+  findDuplicateAlertComment,
   formatAlertComment
 } from "./plugin-health-monitor-lib.mjs";
 
@@ -106,9 +107,7 @@ async function postAlertComment(findings) {
   const comments = await api(
     `/repos/${alertRepo}/issues/${alertIssueNumber}/comments?per_page=100&sort=created&direction=desc`
   );
-  const duplicate = Array.isArray(comments)
-    ? comments.find((comment) => comment?.body === body)
-    : null;
+  const duplicate = findDuplicateAlertComment(comments, body);
   if (duplicate?.html_url) {
     return {
       html_url: duplicate.html_url,

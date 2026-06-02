@@ -109,3 +109,14 @@ export function formatAlertComment(findings, context) {
   lines.push("", `Report written to \`${outPath}\`.`);
   return lines.join("\n");
 }
+
+/**
+ * Find an existing alert comment with an identical body so the monitor can reuse it.
+ */
+export function findDuplicateAlertComment(comments, body) {
+  if (!Array.isArray(comments) || !body) {
+    return null;
+  }
+
+  return comments.find((comment) => comment?.body === body) || null;
+}
