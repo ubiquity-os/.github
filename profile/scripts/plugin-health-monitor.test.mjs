@@ -1,0 +1,66 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  collectFailureStreak,
+  formatAlertComment,
+  formatFailureContext
+} from "./plugin-health-monitor-lib.mjs";
+
+test("collectFailureStreak stops at first non-failure completed run", () => {
+  const runs = [
+    { status: "completed", conclusion: "failure", id: 3 },
+    { status: "completed", conclusion: "failure", id: 2 },
+    { status: "completed", conclusion: "success", id: 1 },
+    { status: "in_progress", conclusion: null, id: 0 }
+  ];
+
+  const streak = collectFailureStreak(runs);
+
+  assert.deepEqual(streak.map((run) => run.id), [3, 2]);
+});
+
+test("formatFailureContext renders run and job details", () => {
+  const lines = formatFailureContext({
+    run_url: "https://github.com/org/repo/actions/runs/123",
+    head_branch: "main",
+    head_sha: "abcdef1234567890",
+    failed_jobs: [
+      {
+        name: "build",
+        html_url: "https://github.com/org/repo/actions/runs/123/job/456",
+        failed_steps: ["lint", "test"]
+      }
+    ]
+  });
+
+  assert(lines.some((line) => line.includes("latest failed run")));
+  assert(lines.some((line) => line.includes("branch `main`")));
+  assert(lines.some((line) => line.includes("sha `abcdef1`")));
+  assert(lines.some((line) => line.includes("`build`")));
+  assert(lines.some((line) => line.includes("`lint`, `test`")));
+});
+
+test("formatAlertComment includes summary and report path", () => {
+  const body = formatAlertComment(
+    [
+      {
+        repo: "acme/plugin-a",
+        workflow: "CI",
+        consecutive_failures: 10,
+        html_url: "https://github.com/acme/plugin-a/actions/workflows/1",
+        failure_context: null
+      }
+    ],
+    {
+      alertTags: "@0x4007 @gentlementlegen",
+      threshold: 10,
+      org: "ubiquity-os-marketplace",
+      outPath: "profile/plugin-health-report.json"
+    }
+  );
+
+  assert.match(body, /@0x4007 @gentlementlegen/);
+  assert.match(body, />= 10 consecutive workflow failures/);
+  assert.match(body, /`acme\/plugin-a`/);
+  assert.match(body, /Report written to `profile\/plugin-health-report\.json`/);
+});

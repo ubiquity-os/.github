@@ -24,6 +24,10 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Run unit tests
+        run: |
+          node --test profile/scripts/plugin-health-monitor.test.mjs
+
       - name: Run monitor
         id: monitor
         continue-on-error: true
