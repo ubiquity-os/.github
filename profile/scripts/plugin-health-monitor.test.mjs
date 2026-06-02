@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildFailureContext,
+  buildAlertKey,
   collectFailureStreak,
   findDuplicateAlertComment,
+  extractAlertKey,
+  normalizeAlertCommentBody,
   formatAlertComment,
   formatFailureContext
 } from "./plugin-health-monitor-lib.mjs";
@@ -65,6 +68,21 @@ test("formatAlertComment includes summary and report path", () => {
   assert.match(body, />= 10 consecutive workflow failures/);
   assert.match(body, /`acme\/plugin-a`/);
   assert.match(body, /Report written to `profile\/plugin-health-report\.json`/);
+  assert.match(body, /<!-- plugin-health-monitor:/);
+  assert.equal(extractAlertKey(body), buildAlertKey([
+    {
+      repo: "acme/plugin-a",
+      workflow: "CI",
+      consecutive_failures: 10,
+      html_url: "https://github.com/acme/plugin-a/actions/workflows/1",
+      failure_context: null
+    }
+  ], {
+    alertTags: "@0x4007 @gentlementlegen",
+    threshold: 10,
+    org: "ubiquity-os-marketplace",
+    outPath: "profile/plugin-health-report.json"
+  }));
 });
 
 test("findDuplicateAlertComment returns the matching comment when bodies are identical", () => {
@@ -79,6 +97,52 @@ test("findDuplicateAlertComment returns the matching comment when bodies are ide
   assert.deepEqual(duplicate, {
     body: "target body",
     html_url: "https://github.com/example/2"
+  });
+});
+
+test("findDuplicateAlertComment matches on stable alert keys even if run URLs differ", () => {
+  const findings = [
+    {
+      repo: "acme/plugin-a",
+      workflow: "CI",
+      consecutive_failures: 10,
+      html_url: "https://github.com/acme/plugin-a/actions/workflows/1",
+      failure_context: {
+        run_url: "https://github.com/acme/plugin-a/actions/runs/111",
+        logs_url: "https://github.com/acme/plugin-a/actions/runs/111/logs",
+        head_branch: "main",
+        head_sha: "abcdef1234567890",
+        failed_jobs: []
+      }
+    }
+  ];
+  const context = {
+    alertTags: "@0x4007 @gentlementlegen",
+    threshold: 10,
+    org: "ubiquity-os-marketplace",
+    outPath: "profile/plugin-health-report.json"
+  };
+  const originalBody = formatAlertComment(findings, context);
+  const legacyBody = originalBody
+    .replace(/\n<!-- plugin-health-monitor:[A-Za-z0-9_-]+ -->$/, "")
+    .replace("111", "222");
+
+  const duplicate = findDuplicateAlertComment(
+    [
+      { body: legacyBody, html_url: "https://github.com/example/alert/1" },
+      { body: "unrelated", html_url: "https://github.com/example/alert/2" }
+    ],
+    originalBody
+  );
+
+  assert.equal(extractAlertKey(originalBody), buildAlertKey(findings, context));
+  assert.equal(
+    normalizeAlertCommentBody(originalBody),
+    normalizeAlertCommentBody(legacyBody)
+  );
+  assert.deepEqual(duplicate, {
+    body: legacyBody,
+    html_url: "https://github.com/example/alert/1"
   });
 });
 

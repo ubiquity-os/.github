@@ -94,6 +94,7 @@ export function formatAlertComment(findings, context) {
   const { alertTags, threshold, org, outPath } = context;
   const sample = findings.slice(0, 5);
   const extra = findings.length - sample.length;
+  const alertKey = buildAlertKey(findings, context);
   const lines = [
     `${alertTags} Plugin Health Monitor found ${findings.length} repo(s) with >= ${threshold} consecutive workflow failures in \`${org}\`.`,
     "",
@@ -106,7 +107,7 @@ export function formatAlertComment(findings, context) {
   if (extra > 0) {
     lines.push(`- ...and ${extra} more`);
   }
-  lines.push("", `Report written to \`${outPath}\`.`);
+  lines.push("", `Report written to \`${outPath}\`.`, `<!-- plugin-health-monitor:${alertKey} -->`);
   return lines.join("\n");
 }
 
@@ -118,5 +119,56 @@ export function findDuplicateAlertComment(comments, body) {
     return null;
   }
 
-  return comments.find((comment) => comment?.body === body) || null;
+  const alertKey = extractAlertKey(body);
+  const normalizedBody = normalizeAlertCommentBody(body);
+  if (!alertKey) {
+    return comments.find((comment) => normalizeAlertCommentBody(comment?.body) === normalizedBody) || null;
+  }
+
+  return (
+    comments.find((comment) => extractAlertKey(comment?.body) === alertKey) ||
+    comments.find((comment) => normalizeAlertCommentBody(comment?.body) === normalizedBody) ||
+    null
+  );
+}
+
+export function buildAlertKey(findings, context) {
+  const threshold = Number(context?.threshold || 0);
+  const org = String(context?.org || "");
+  const normalizedFindings = Array.isArray(findings)
+    ? findings
+        .map((finding) => ({
+          repo: String(finding?.repo || ""),
+          workflow: String(finding?.workflow || "")
+        }))
+        .sort((left, right) =>
+          left.repo.localeCompare(right.repo) || left.workflow.localeCompare(right.workflow)
+        )
+    : [];
+
+  const signature = JSON.stringify({ org, threshold, normalizedFindings });
+  return Buffer.from(signature).toString("base64url");
+}
+
+export function extractAlertKey(body) {
+  if (!body) {
+    return null;
+  }
+
+  const match = String(body).match(/<!-- plugin-health-monitor:([A-Za-z0-9_-]+) -->/);
+  return match ? match[1] : null;
+}
+
+export function normalizeAlertCommentBody(body) {
+  if (!body) {
+    return "";
+  }
+
+  return String(body)
+    .split(/\r?\n/)
+    .filter((line) => !line.startsWith("<!-- plugin-health-monitor:"))
+    .filter((line) => !line.trim().startsWith("- latest failed run:"))
+    .filter((line) => !line.trim().startsWith("- logs:"))
+    .join("\n")
+    .trim();
 }
