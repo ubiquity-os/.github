@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   actions: read
+  issues: write
 
 jobs:
   health-check:
@@ -23,22 +24,35 @@ jobs:
 
       - name: Run monitor
         id: monitor
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_ORG: ubiquity-os-marketplace
+          ALERT_REPO: ${{ github.repository }}
+          ALERT_ISSUE_NUMBER: "12"
+          ALERT_TAGS: "@0x4007 @gentlementlegen"
           FAILURE_STREAK_THRESHOLD: "10"
           OUTPUT_PATH: profile/plugin-health-report.json
         run: |
-          node profile/scripts/plugin-health-monitor.mjs || true
+          node profile/scripts/plugin-health-monitor.mjs
 
       - name: Upload report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: plugin-health-report
           path: profile/plugin-health-report.json
 
       - name: Fail when threshold exceeded
+        if: always()
+        env:
+          MONITOR_OUTCOME: ${{ steps.monitor.outcome }}
         run: |
+          if [ "${MONITOR_OUTCOME}" = "failure" ]; then
+            echo "Plugin health monitor execution failed"
+            exit 1
+          fi
+
           if [ -f profile/plugin-health-report.json ]; then
             count=$(jq -r '.findings_count // 0' profile/plugin-health-report.json)
             echo "findings_count=$count"
