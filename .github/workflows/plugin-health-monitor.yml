@@ -46,6 +46,43 @@ jobs:
           path: profile/plugin-health-report.json
           if-no-files-found: ignore
 
+      - name: Publish run summary
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f profile/plugin-health-report.json ]; then
+            echo "Plugin Health Monitor report missing" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          node <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('profile/plugin-health-report.json', 'utf8'));
+          const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+          if (!summaryPath) process.exit(0);
+
+          const lines = [];
+          lines.push('### Plugin Health Monitor');
+          lines.push('');
+          lines.push(`- Repositories scanned: ${report.repositories_scanned ?? 0}`);
+          lines.push(`- Findings: ${report.findings_count ?? 0}`);
+          lines.push(`- Threshold: ${report.threshold ?? 0}`);
+          if (report.alert_comment_url) {
+            lines.push(`- Alert comment: ${report.alert_comment_url}`);
+          }
+          lines.push('');
+          if (Array.isArray(report.findings) && report.findings.length > 0) {
+            lines.push('Top findings:');
+            for (const finding of report.findings.slice(0, 5)) {
+              lines.push(`- \`${finding.repo}\` / \`${finding.workflow}\`: ${finding.consecutive_failures} consecutive failures`);
+            }
+          } else {
+            lines.push('No workflow streaks crossed the threshold in this run.');
+          }
+
+          fs.appendFileSync(summaryPath, `${lines.join('\n')}\n`);
+          NODE
+
       - name: Fail when threshold exceeded
         if: always()
         env:
