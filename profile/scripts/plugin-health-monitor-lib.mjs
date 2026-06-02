@@ -21,6 +21,7 @@ export async function buildFailureContext(api, run) {
   if (!run?.jobs_url) {
     return {
       run_url: run?.html_url || null,
+      logs_url: run?.logs_url || null,
       head_branch: run?.head_branch || null,
       head_sha: run?.head_sha || null,
       failed_jobs: []
@@ -35,6 +36,7 @@ export async function buildFailureContext(api, run) {
 
   return {
     run_url: run.html_url || null,
+    logs_url: run.logs_url || null,
     head_branch: run.head_branch || null,
     head_sha: run.head_sha || null,
     failed_jobs: failedJobs.slice(0, 3).map((job) => ({
@@ -55,6 +57,9 @@ export function formatFailureContext(failureContext) {
   const lines = [];
   if (failureContext.run_url) {
     lines.push(`  - latest failed run: ${failureContext.run_url}`);
+  }
+  if (failureContext.logs_url) {
+    lines.push(`  - logs: ${failureContext.logs_url}`);
   }
 
   const runBits = [];

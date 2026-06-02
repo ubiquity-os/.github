@@ -95,12 +95,14 @@ test("buildFailureContext keeps the latest failing run context and failed jobs",
   const context = await buildFailureContext(api, {
     jobs_url: "https://api.github.com/repos/org/repo/actions/runs/123/jobs?per_page=100",
     html_url: "https://github.com/org/repo/actions/runs/123",
+    logs_url: "https://github.com/org/repo/actions/runs/123/logs",
     head_branch: "main",
     head_sha: "abcdef1234567890"
   });
 
   assert.deepEqual(calls, ["/repos/org/repo/actions/runs/123/jobs?per_page=100"]);
   assert.equal(context.run_url, "https://github.com/org/repo/actions/runs/123");
+  assert.equal(context.logs_url, "https://github.com/org/repo/actions/runs/123/logs");
   assert.equal(context.head_branch, "main");
   assert.equal(context.head_sha, "abcdef1234567890");
   assert.equal(context.failed_jobs.length, 1);
@@ -109,4 +111,7 @@ test("buildFailureContext keeps the latest failing run context and failed jobs",
     html_url: "https://github.com/org/repo/actions/runs/123/job/456",
     failed_steps: ["lint", "test"]
   });
+
+  const lines = formatFailureContext(context);
+  assert(lines.some((line) => line.includes("logs: https://github.com/org/repo/actions/runs/123/logs")));
 });
