@@ -4,6 +4,7 @@ import {
   buildFailureContext,
   buildAlertKey,
   collectFailureStreak,
+  filterWorkflowDispatchRuns,
   findDuplicateAlertComment,
   extractAlertKey,
   normalizeAlertCommentBody,
@@ -22,6 +23,17 @@ test("collectFailureStreak stops at first non-failure completed run", () => {
   const streak = collectFailureStreak(runs);
 
   assert.deepEqual(streak.map((run) => run.id), [3, 2]);
+});
+
+test("filterWorkflowDispatchRuns keeps only manual workflow_dispatch runs", () => {
+  const runs = [
+    { id: 1, event: "push" },
+    { id: 2, event: "workflow_dispatch" },
+    { id: 3, event: "schedule" },
+    { id: 4, event: "workflow_dispatch" }
+  ];
+
+  assert.deepEqual(filterWorkflowDispatchRuns(runs).map((run) => run.id), [2, 4]);
 });
 
 test("formatFailureContext renders run and job details", () => {

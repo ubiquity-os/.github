@@ -5,6 +5,7 @@ This profile scans public repositories in `ubiquity-os-marketplace` for workflow
 ## Purpose
 
 - detect repositories that have `>= 10` consecutive workflow failures
+- count only `workflow_dispatch` runs so the monitor stays scoped to the bounty's manual-trigger signal
 - attach useful failure context for maintainers
 - post a deduplicated alert comment on the tracking issue
 - write a JSON report for downstream automation or review

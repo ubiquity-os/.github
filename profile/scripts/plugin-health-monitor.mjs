@@ -8,6 +8,7 @@ import {
   buildFailureContext,
   collectFailureStreak,
   findDuplicateAlertComment,
+  filterWorkflowDispatchRuns,
   formatAlertComment
 } from "./plugin-health-monitor-lib.mjs";
 
@@ -137,7 +138,8 @@ async function main() {
       const runs = await api(
         `/repos/${repo.full_name}/actions/workflows/${wf.id}/runs?per_page=30&exclude_pull_requests=true`
       );
-      const streakRuns = collectFailureStreak(runs.workflow_runs ?? []);
+      const dispatchRuns = filterWorkflowDispatchRuns(runs.workflow_runs ?? []);
+      const streakRuns = collectFailureStreak(dispatchRuns);
       if (streakRuns.length >= threshold) {
         const failureContext = await buildFailureContext(api, streakRuns[0]);
         findings.push({

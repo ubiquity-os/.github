@@ -172,3 +172,14 @@ export function normalizeAlertCommentBody(body) {
     .join("\n")
     .trim();
 }
+
+/**
+ * Keep only workflow-dispatch runs so the streak tracker matches the bounty's manual-trigger scope.
+ */
+export function filterWorkflowDispatchRuns(runs) {
+  if (!Array.isArray(runs)) {
+    return [];
+  }
+
+  return runs.filter((run) => run?.event === "workflow_dispatch");
+}
