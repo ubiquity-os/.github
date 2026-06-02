@@ -24,25 +24,53 @@ const headers = {
   "User-Agent": "plugin-health-monitor"
 };
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Perform a GitHub API request with a single rate-limit aware retry.
+ */
 async function api(path, init = {}) {
   const url = `https://api.github.com${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      ...headers,
-      ...(init.headers || {})
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        ...headers,
+        ...(init.headers || {})
+      }
+    });
+    if (res.ok) {
+      if (res.status === 204) {
+        return null;
+      }
+      return res.json();
     }
-  });
-  if (!res.ok) {
+
+    const retryAfter = Number(res.headers.get("retry-after") || "0");
+    const rateRemaining = Number(res.headers.get("x-ratelimit-remaining") || "1");
+    const rateReset = Number(res.headers.get("x-ratelimit-reset") || "0");
+    const waitMs =
+      retryAfter > 0
+        ? retryAfter * 1000
+        : rateRemaining === 0 && rateReset > 0
+          ? Math.max(rateReset * 1000 - Date.now(), 1000)
+          : 0;
+
+    if (attempt === 0 && waitMs > 0) {
+      await sleep(Math.min(waitMs, 5000));
+      continue;
+    }
+
     const body = await res.text();
     throw new Error(`GitHub API ${res.status} ${url}\n${body}`);
   }
-  if (res.status === 204) {
-    return null;
-  }
-  return res.json();
 }
 
+/**
+ * Enumerate public repositories in the monitored org and ignore archived entries.
+ */
 async function listOrgRepos() {
   const repos = [];
   let page = 1;
@@ -57,6 +85,9 @@ async function listOrgRepos() {
   return repos.filter(r => !r.archived);
 }
 
+/**
+ * Count the number of consecutive completed failures from newest to oldest.
+ */
 function consecutiveFailureCount(runs) {
   let count = 0;
   for (const run of runs) {
@@ -70,6 +101,9 @@ function consecutiveFailureCount(runs) {
   return count;
 }
 
+/**
+ * Render a compact issue comment that is easy for maintainers to scan.
+ */
 function formatAlertComment(findings) {
   const sample = findings.slice(0, 5);
   const extra = findings.length - sample.length;
@@ -86,6 +120,9 @@ function formatAlertComment(findings) {
   return lines.join("\n");
 }
 
+/**
+ * Post an alert back to the tracking issue so the finding is visible to maintainers.
+ */
 async function postAlertComment(findings) {
   const body = formatAlertComment(findings);
   const response = await api(`/repos/${alertRepo}/issues/${alertIssueNumber}/comments`, {
@@ -98,6 +135,9 @@ async function postAlertComment(findings) {
   return response;
 }
 
+/**
+ * Main monitor flow: scan repos, compute failure streaks, emit a report, and alert if needed.
+ */
 async function main() {
   const repos = await listOrgRepos();
   const findings = [];
